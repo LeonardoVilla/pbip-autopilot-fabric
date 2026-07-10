@@ -1,0 +1,14 @@
+# PBIP — artefatos locais que não devem ser versionados (padrão Microsoft)
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Saídas binárias
+*.pbix
+
+# Python
+__pycache__/
+*.pyc
+
+# SO / editor
+Thumbs.db
+.DS_Store
