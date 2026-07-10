@@ -46,3 +46,11 @@ via Microsoft Store, .NET 6 SDK), para referência em caso de regressão futura.
   read-only): o `DataModel` do .pbix é um backup ABF comprimido com XPress9 e não é
   editável offline com segurança — por isso a via TOM (arquivo aberto) é a única
   rota de ESCRITA viável de ETL.
+
+## Tabela calendário — intervalo sempre dinâmico
+
+Padrão de `dim_calendario` (T-SQL) documentado em detalhe em
+`../../gerar-modelo-tmdl/SKILL.md` (seção "Tabela calendário"): `@DATA_INICIO`/
+`@DATA_FIM` calculados via `MIN`/`MAX` da data-fonte da fato (ex: `DATAADMISSAO`),
+nunca fixados como literal. Usar esse mesmo padrão ao ajustar `dim_calendario`
+via TOM num modelo já aberto.

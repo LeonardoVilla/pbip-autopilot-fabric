@@ -90,6 +90,52 @@ Regras novas (TMDL):
 - Quebras de linha no M ficam literais dentro do bloco `source =` (não usar
   `#(lf)` como era necessário via TOM).
 
+## Tabela calendário (dim_calendario) — SEMPRE dinâmica, nunca fixar datas
+
+Ao criar uma tabela de datas, o intervalo (`@DATA_INICIO`/`@DATA_FIM`) tem que
+ser calculado dinamicamente a partir da própria data-fonte da fato principal
+do painel (ex: `MIN`/`MAX` de `DATAADMISSAO`, `data_matricula`, etc.) — **nunca
+hardcodar** um ano/intervalo fixo (`'2023-01-01'`...`'2026-12-31'`). Isso
+garante que o calendário sempre cobre exatamente o período dos dados reais,
+sem precisar editar a query manualmente a cada novo painel ou a cada virada
+de ano/mês.
+
+Padrão validado (T-SQL, ver `Painel-RM-Turnover-GERT`), adaptar o
+`FROM <fato> WHERE <coluna_data> IS NOT NULL` para a fonte de cada projeto:
+
+```sql
+DECLARE @DATA_INICIO DATE;
+DECLARE @DATA_FIM DATE;
+
+SELECT @DATA_INICIO = DATEADD(DAY, 1 - DAY(MIN(<coluna_data>)), MIN(<coluna_data>)),
+       @DATA_FIM    = EOMONTH(MAX(<coluna_data>))
+FROM <tabela_fato>
+WHERE <coluna_data> IS NOT NULL;
+
+SELECT
+    DATEADD(DAY, N.N, @DATA_INICIO) AS DATA,
+    YEAR(DATEADD(DAY, N.N, @DATA_INICIO)) AS ANO,
+    MONTH(DATEADD(DAY, N.N, @DATA_INICIO)) AS MES,
+    -- NOMEMES, NOMEMES_ABREV, ANOMES, TRIMESTRE, DIASEMANA,
+    -- NOMEDIASEMANA, NOMEDIASEMANA_ABREV, PRIMEIRODIAMES, ULTIMODIAMES
+    ...
+FROM (
+    SELECT a.N + b.N*10 + c.N*100 + d.N*1000 + e.N*10000 AS N
+    FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) a(N)
+    CROSS JOIN (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) b(N)
+    CROSS JOIN (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) c(N)
+    CROSS JOIN (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) d(N)
+    CROSS JOIN (VALUES (0),(1)) e(N)
+) N
+WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
+```
+
+- `@DATA_INICIO` = 1º dia do mês da menor data da fato (`DATEADD(DAY, 1 - DAY(MIN(...)), MIN(...))`).
+- `@DATA_FIM` = último dia do mês da maior data da fato (`EOMONTH(MAX(...))`).
+- Tally table de dígitos (cross join `a..e`) gera até 200.000 dias — cobre qualquer intervalo real sem precisar de tabela auxiliar de números no banco.
+- Se a fonte não for MSSQL, replicar a mesma ideia (calcular MIN/MAX dinamicamente, gerar série de datas) na sintaxe do dialeto (ex: `generate_series` no Postgres, `List.Dates` nativo do M).
+- Se houver múltiplas fatos com datas, calcular `@DATA_INICIO`/`@DATA_FIM` como o MIN/MAX entre todas (`UNION ALL` das colunas de data antes do MIN/MAX), não só da fato principal.
+
 ## Regras críticas
 
 1. **NUNCA editar os arquivos com o projeto aberto no Desktop** — o Desktop
