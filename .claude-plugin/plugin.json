@@ -2,13 +2,7 @@
   "name": "pbip-autopilot-fabric",
   "version": "0.1.0",
   "description": "Power BI as Code: automação ponta a ponta de painéis Power BI via formato PBIP. Gera o modelo semântico (TMDL: tabelas, ETL Power Query M, medidas DAX, relacionamentos) e o relatório (PBIR: páginas, visuais, filtros) como arquivos de texto, sem precisar do Power BI Desktop aberto durante a geração.",
-  "author": "Leonardo Villa",
-  "skills": [
-    "skills/gerar-modelo-tmdl",
-    "skills/gerar-visuais-pbir",
-    "skills/pbip-context",
-    "skills/gerar-etl-tom",
-    "skills/gerar-pbix",
-    "skills/pbix-context"
-  ]
+  "author": {
+    "name": "Leonardo Villa"
+  }
 }

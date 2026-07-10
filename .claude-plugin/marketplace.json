@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "pbip-autopilot-fabric",
+  "description": "Power BI as Code via PBIP (TMDL + PBIR) — automação ponta a ponta de painéis Power BI.",
+  "owner": {
+    "name": "Leonardo Villa"
+  },
+  "plugins": [
+    {
+      "name": "pbip-autopilot-fabric",
+      "source": "./",
+      "description": "Power BI as Code: automação ponta a ponta de painéis Power BI via formato PBIP (TMDL + PBIR). Gera modelo semântico e relatório como arquivos de texto, sem precisar do Power BI Desktop aberto durante a geração."
+    }
+  ]
+}
