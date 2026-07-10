@@ -3,7 +3,7 @@ name: gerar-visuais-pbir
 description: Gera o relatório de um projeto Power BI (PBIP) escrevendo os JSONs do formato PBIR - páginas, visuais (card, tabela, matriz, gauge, linha, área, combo, donut, barras, slicer), filtros e layout. Use quando o usuário pedir para criar/gerar os visuais de um painel programaticamente. Não requer Desktop aberto; opera sobre a pasta *.Report do .pbip.
 argument-hint: <pasta-do-projeto.pbip> [nome-do-painel]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.1.0
+version: 0.2.0
 ---
 
 # /gerar-visuais-pbir — Relatório como código (PBIR)
@@ -72,3 +72,113 @@ cards, donut, barras, linha, área, combo, tabela, matriz, gauge, slicers,
 shape, textbox, botão de navegação, imagem (ícones/logo via StaticResources),
 `grid()` de layout, filtros de página/visual, preset `kpi_card_villa` e o
 design system VILLA.
+
+## Drillthrough e Tooltip de página (validado em campo — VILLA MT, jul/2026)
+
+Ambos são **`pageBinding` na página de destino** + configuração no visual de
+origem. Foram a parte mais difícil de acertar às cegas; as regras abaixo saíram
+de depuração real e evitam repetir o mesmo ciclo de tentativa-e-erro.
+
+### Drillthrough (botão direito → Detalhar)
+
+Na `page.json` da página de destino (a que abre filtrada):
+
+```json
+{
+  "type": "Drillthrough",
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "<id-do-filtro>",
+        "ordinal": 0,
+        "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_unidade" } }, "Property": "SiglaUnidade" } },
+        "type": "Categorical",
+        "howCreated": "Drillthrough",
+        "objects": { "general": [ { "properties": { "requireSingleSelect": { "expr": { "Literal": { "Value": "true" } } } } } ] }
+      }
+    ],
+    "filterSortOrder": "Custom"
+  },
+  "pageBinding": {
+    "name": "drillthrough-<slug>",
+    "type": "Drillthrough",
+    "parameters": [
+      {
+        "name": "SiglaUnidade",
+        "boundFilter": "<id-do-filtro>",
+        "fieldExpr": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_unidade" } }, "Property": "SiglaUnidade" } }
+      }
+    ]
+  }
+}
+```
+
+- **`pageBinding.parameters` NÃO pode ficar vazio (`[]`).** Com `[]`, o Desktop
+  abre o arquivo sem erro mas **não reconhece a página como drillthrough** (a
+  seção "Detalhamento" some do painel de formato). Cada parameter liga o filtro
+  (`boundFilter` = o `name` do filtro em `filterConfig`) ao campo (`fieldExpr`,
+  a mesma expressão de coluna do filtro).
+- **O campo do filtro tem de ser a MESMA coluna que os visuais de origem usam.**
+  Se o gráfico/tabela de origem agrupa por `dim_unidade.SiglaUnidade`, o
+  drillthrough tem de filtrar por `SiglaUnidade` — não por `UNIDADE_CURTA` nem
+  outra coluna da mesma tabela. Com coluna divergente, o "Detalhar" não aparece
+  no menu de botão-direito. Não precisa configurar nada nos visuais de origem: o
+  Desktop habilita "Detalhar" automaticamente em qualquer visual que use a coluna.
+- Colunas calculadas (ex.: `SiglaUnidade` via `SWITCH`) funcionam como campo de
+  drillthrough normalmente.
+
+### Tooltip de página (popup ao passar o mouse)
+
+Na `page.json` da página-tooltip: `"type": "Tooltip"`. Na interface é o dropdown
+**Informações da página → Tipo de página → "Dica de Ferramenta"** (o mesmo lugar
+onde "Detalhamento" = Drillthrough). No visual de origem, em
+`visualContainerObjects`:
+
+```json
+"visualTooltip": [
+  { "properties": {
+      "show":    { "expr": { "Literal": { "Value": "true" } } },
+      "type":    { "expr": { "Literal": { "Value": "'ReportPage'" } } },
+      "section": { "expr": { "Literal": { "Value": "'<id-da-pagina-tooltip>'" } } }
+  } }
+]
+```
+
+`section` é o **`name` (GUID) da página-tooltip**, não o `displayName`.
+
+Armadilhas confirmadas:
+
+- **NÃO reaproveitar uma página de drillthrough como tooltip.** Se um visual
+  aponta `visualTooltip.section` para uma página cujo `type` é `Drillthrough`, o
+  Desktop **converte essa página para `type: "Tooltip"` ao salvar** — e nesse
+  processo **apaga o `filterConfig`/`pageBinding` de drillthrough dela**,
+  quebrando o drillthrough silenciosamente. Drillthrough e tooltip pedem páginas
+  **separadas**. Depois de configurar tooltip pela interface, reabra e confira
+  que as páginas de drillthrough continuam `type: "Drillthrough"`.
+- **Tabelas/matrizes (`tableEx`) não expõem o poço "Dicas de ferramentas"** no
+  painel Compilar e têm suporte pobre a tooltip de página — mostram o tooltip
+  padrão (valor da célula + rodapé de ações/Drill-through). Prefira gráficos
+  (colunas, linha, barras) como origem do tooltip de página.
+- **"Modern Visual Tooltips" é GA e padrão** (não é mais preview removível). O
+  popup padrão traz um "Actions footer" com Drill-through embutido; é esse popup
+  pequeno que aparece, não o tooltip de página, quando algo está desalinhado.
+- **`displayOption`/tamanho**: gere a página-tooltip como o Desktop gera — a
+  referência que funcionou usava `displayOption: "FitToPage"`. O Desktop mantém
+  `visibility: "HiddenInViewMode"` em página-tooltip (readiciona ao salvar se
+  você remover), então **não é** isso que impede o hover; é o padrão esperado.
+  A causa real de "não dispara" costuma ser apontar para a página errada
+  (`section` de uma página `Drillthrough`) ou usar tabela como origem.
+- Tooltip de página **funciona no Desktop e no Service** (não é exclusivo da web).
+
+### Regra de ouro reforçada
+
+O Desktop **reescreve os arquivos ao salvar** e, ao fazê-lo, (a) injeta
+propriedades que você omitiu — em `visualTooltip` ele adiciona
+`showChartSpecificTooltips`, `showSentenceFormat`, `showTooltipFieldsOnly`; se
+essas não existirem na versão de `$schema` que o arquivo declara, a próxima
+abertura mostra **"Seu relatório tem problemas que não puderam ser resolvidos"**.
+Mantenha só `show`/`type`/`section` e deixe o Desktop completar; (b) pode
+converter/normalizar tipos de página (ver armadilha drillthrough↔tooltip acima).
+**Corolário:** editar arquivo com o Desktop ABERTO gera conflito de sincronização
+que pode disparar essa mesma tela de erro. Sempre feche o Desktop antes de editar
+e, se ele já resalvou algo, releia o disco antes de continuar (`git diff`).
