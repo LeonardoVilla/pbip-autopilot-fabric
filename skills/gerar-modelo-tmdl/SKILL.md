@@ -1,6 +1,6 @@
 ---
 name: gerar-modelo-tmdl
-description: Gera/edita o modelo semântico de um projeto Power BI (PBIP) escrevendo arquivos TMDL - tabelas com ETL Power Query M, medidas DAX, colunas calculadas e relacionamentos. Use quando o usuário pedir para criar tabela a partir de SQL, adicionar medida/relacionamento, ou montar o modelo de um painel sem abrir o Power BI Desktop. Não requer Desktop aberto; opera sobre a pasta *.SemanticModel do .pbip.
+description: Gera/edita o modelo semântico de um projeto Power BI (PBIP) escrevendo arquivos TMDL - tabelas com ETL Power Query M, medidas DAX, colunas calculadas e relacionamentos. Usa qualquer MCP de banco disponível (MSSQL/MySQL/Oracle) para descobrir schema e validar o SQL antes de embutir no M. Use quando o usuário pedir para criar tabela a partir de SQL, adicionar medida/relacionamento, ou montar o modelo de um painel sem abrir o Power BI Desktop. Não requer Desktop aberto; opera sobre a pasta *.SemanticModel do .pbip.
 argument-hint: <pasta-do-projeto.pbip> <comando: add-table | add-measure | add-relationship | ...>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
 version: 0.1.0
@@ -36,14 +36,22 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 1. **Localizar o projeto**: encontrar a pasta `*.SemanticModel/definition/` a
    partir do `.pbip` informado. Se o usuário só tem `.pbix`, instruir:
    abrir no Desktop → Arquivo → Salvar como → `.pbip` (uma única vez).
-2. **Ler o estado atual**: `model.tmdl` e `tables/` existentes antes de
+2. **Construir/validar o SQL via MCP de banco** (quando a tabela vem de
+   MSSQL/MySQL/Oracle): seguir o protocolo agnóstico de servidor em
+   [descoberta-schema-mcp.md](references/descoberta-schema-mcp.md) —
+   detectar qualquer MCP disponível para a fonte, explorar o schema,
+   testar o SELECT com limite e derivar os tipos das colunas do resultado
+   real. **Sem MCP disponível, não inventar schema**: parar e ponderar as
+   opções com o usuário (configurar MCP, fornecer schema/amostra, executar
+   a query manualmente, ou seguir sem validação com aval explícito).
+3. **Ler o estado atual**: `model.tmdl` e `tables/` existentes antes de
    qualquer escrita — nomes exatos importam (mesma regra Unicode do projeto
    anterior: `Nº`, `Ação`, acentos).
-3. **Escrever o TMDL** (tabela nova = arquivo novo em `tables/` + referência
+4. **Escrever o TMDL** (tabela nova = arquivo novo em `tables/` + referência
    em `model.tmdl` se o padrão do projeto exigir).
-4. **Validar**: abrir o `.pbip` no Desktop (ou usar o powerbi-modeling-mcp)
+5. **Validar**: abrir o `.pbip` no Desktop (ou usar o powerbi-modeling-mcp)
    e conferir; erros de sintaxe TMDL aparecem na abertura.
-5. **Carga de dados**: instruir o usuário a clicar **Atualizar** no Desktop
+6. **Carga de dados**: instruir o usuário a clicar **Atualizar** no Desktop
    (ou agendar refresh no serviço). A geração cria só metadados.
 
 ## Padrão de tabela com ETL SQL (herdado e validado no projeto anterior)

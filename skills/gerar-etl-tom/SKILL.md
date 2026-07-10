@@ -55,6 +55,17 @@ dotnet run --project tools/EtlTom -- refresh-table --name dim_nova
 
 ### 3. Gerar o arquivo .m a partir de SQL
 
+**Antes de escrever o SQL** — se houver qualquer servidor MCP com acesso à
+fonte (procurar ferramentas `mcp__*` de mssql/mysql/oracle/database na sessão),
+usá-lo para: listar schema, testar o SELECT com `TOP 10`/`LIMIT 10` (somente
+leitura, nunca DDL/DML) e derivar o `--columns` dos nomes/tipos REAIS
+retornados. Protocolo completo (detecção agnóstica de servidor, mapa de tipos
+SQL→M, fallbacks): ver
+[descoberta-schema-mcp.md](../gerar-modelo-tmdl/references/descoberta-schema-mcp.md).
+Sem MCP disponível: não inventar schema — ponderar com o usuário (fornecer
+schema/amostra, executar a query manualmente, ou seguir sem validação com
+aval explícito, ciente de que o refresh pode falhar).
+
 Padrão validado — embrulhar a query SQL nativa em `Sql.Database`:
 
 ```
