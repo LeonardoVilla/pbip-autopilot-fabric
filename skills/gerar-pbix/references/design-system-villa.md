@@ -29,35 +29,43 @@ O label do card usa a mesma cor; o número usa sempre `#15314F`.
 | Colaboradores Ativos | `#2471A3` (azul) |
 | Turnover % | `#7D3C98` (roxo) |
 
-## Tipografia
+## Tipografia (valores exatos, validados em produção)
 
 | Elemento | Fonte | Tamanho | Peso | Cor |
 |----------|-------|---------|------|-----|
-| Título do header | Segoe UI | 18pt | Bold | `#FFFFFF` |
-| Número do KPI | Segoe UI Semibold | 28–32pt | Semibold | `#15314F` |
-| Label do KPI | Segoe UI | 9–10pt | Bold | cor do acento |
-| Título de tabela/gráfico | Segoe UI | 11–12pt | — | `#15314F` |
-| Cabeçalho de tabela | Segoe UI | 9pt | — | `#FFFFFF` |
-| Valores de tabela | Segoe UI | 9pt | — | padrão |
+| Título do header (página) | Segoe UI | **18pt** | Bold | `#FFFFFF` |
+| Número do KPI (card) | Segoe UI Semibold | **26D** (`fontSize`) | Semibold | `#15314F` |
+| Label do KPI (textbox acima do card) | Segoe UI | **9pt** | Bold | cor do acento |
+| Título de tabela/gráfico/donut (`vcObjects.title`) | Segoe UI | **12D** | — | `#15314F` |
+| Cabeçalho de tabela (`columnHeaders`) | Segoe UI | **9D** | — | `#FFFFFF` sobre `#15314F` |
+| Valores de tabela (`values`) | Segoe UI | **9D** | — | padrão |
+| Header do slicer | Segoe UI | **8D** (`textSize`) | — | cor do tema |
+| Itens do slicer | Segoe UI | **8D** (`textSize`) | — | cor do tema |
 
-## Layout (canvas 1280×720)
+> Nota de unidade: propriedades de visual (`fontSize` em `objects`) usam o sufixo `D` (double),
+> ex. `"26D"`. Texto de `textbox` usa string com unidade explícita, ex. `"18pt"`, `"9pt"`.
+
+## Layout (canvas 1280×720) — dimensões exatas
 
 | Elemento | X | Y | W | H |
 |----------|---|---|---|---|
 | Header | 0 | 0 | 1280 | 58 |
-| Logo (no header, à direita) | ~1166 | ~12 | ~100 | ~42 |
+| Textbox do título (dentro do header) | 24 | 12 | **820** | **40** |
+| Logo (no header, à direita) | ~1150–1166 | 12 | ~100–115 | ~40–42 |
 | Faixa de slicers | 0 | 58 | 1280 | 52 |
-| Slicers (6, na faixa) | 14+ | 66 | ~110–200 | 36 |
+| Slicer individual (faixa de 6, via `grid()`) | 14+ | 64 | ~202 (uniforme) | **42** |
 | Barra de acento do card | x_card | 122 | 5 | 92 |
-| Card KPI | x_card | 122 | ~240 | 92 |
-| Label do KPI | x_card+12 | 132 | — | ~20 |
-| Ícone do KPI | x_card+6 | ~152 | ~61 | ~53 |
-| Tabelas (2 lado a lado) | 14 / 646 | 230 | 620 | 258 |
-| Gráfico (rodapé) | 14 | 500 | 1252 | 206 |
+| Card KPI | x_card | 122 | ~200–240 | 92 |
+| Textbox do label do KPI (acima do número) | x_card+12 | 130–132 | **184** (ou w-16) | **30** |
+| Ícone do KPI | x_card+6 a +12 | ~152 | ~42–61 | ~40–53 |
+| Tabela (2 lado a lado) | 14 / 646 | ~230 | ~410–620 | 258 |
+| Gráfico/donut (rodapé) | 14 | 500 | 1252 | 206 |
 
-- **Espaçamento entre KPIs**: ~252px de passo com 5 cards; ~210px com 6 cards.
-- **Cards**: fundo branco, borda `#E5E9F0`, cantos arredondados (radius 8D), sem título interno.
-- **Barra de acento**: shape de 5px à esquerda, mesma altura do card, z acima do card.
+- **Espaçamento entre KPIs**: ~210px de passo com 6 cards (gap 10px).
+- **Cards**: fundo branco, borda `#E5E9F0`, cantos arredondados (radius 8D), sem título interno (`title.show: false`).
+- **Barra de acento**: shape de 5px à esquerda, mesma altura do card, z acima do card (z+5).
+- **Textbox do label do KPI**: altura mínima **30px** — 22px corta o texto em fontes 9pt bold.
+- **Textbox do título da página**: ~820×40px, encostado à esquerda (x=24), fonte 18pt bold branco.
 
 ## Ícones dos KPIs
 
@@ -90,20 +98,34 @@ Disponíveis em `assets/villa-turnover/`:
 
 Fluxo típico: buscar/baixar o ícone → `register_image()` → `image_vc()` ou `kpi_card_villa(icon_logical=...)` → `pack_pbix_with_images()`.
 
-## Tabelas (tableEx)
+## Tabelas (tableEx) — `table_vc()`
 
-- Cabeçalho `#15314F` / texto branco, fonte 9pt.
-- Linhas zebradas (padrão do tema), rowPadding 2–3D.
-- Borda `#E5E9F0`, radius 8D. Fundo branco.
+- Cabeçalho: fundo `#15314F`, texto `#FFFFFF`, `fontSize: 9D`.
+- Valores: `fontSize: 9D`.
+- `grid.gridVertical: false`, `grid.rowPadding: 2D`.
+- Borda `#E5E9F0`, `radius: 8D` (sem `width` explícito). Fundo branco.
+- Título (`vcObjects.title`) `fontSize: 12D` cor `#15314F`.
 - 1ª coluna = dimensão (ex: SiglaUnidade, SECAO), demais = medidas.
 - Linha de Total no rodapé (padrão do tableEx quando há medidas).
 
-## Gráfico (clusteredColumnChart)
+## Gráfico (clusteredColumnChart) — `grouped_bar_vc()`
 
-- Colunas agrupadas, legenda no topo.
-- Rótulos de dados visíveis.
-- Séries de movimentação: Admitidos/Demitidos/Transferidos.
-- Fundo branco, borda `#E5E9F0` radius 8D, título 12pt `#15314F`.
+- Colunas agrupadas (`clusteredColumnChart`), legenda `position: 'Top'`, `showTitle` não setado (padrão).
+- `categoryAxis.showAxisTitle: false`. `valueAxis.show: false` **e** `showAxisTitle: false` (eixo Y totalmente oculto — os rótulos de dados substituem a escala).
+- `labels.show: true` (rótulos de dados visíveis sobre as colunas).
+- Séries de movimentação (exemplo): Admitidos/Demitidos/Transferidos, uma medida por série.
+- Fundo branco, borda `#E5E9F0` radius 8D, título (`vcObjects.title`) `fontSize: 12D` cor `#15314F`.
+
+## Gráfico (barChart) — `bar_vc()`
+
+- Mesmo padrão de eixo oculto: `valueAxis.show: false` + `showAxisTitle: false`, `categoryAxis.showAxisTitle: false`.
+- Fundo branco, borda `#E5E9F0` radius 8D, título `fontSize: 12D` cor `#15314F`.
+
+## Donut (donutChart) — `donut_vc()`
+
+- Legenda embaixo e centralizada: `legend.position: 'BottomCenter'`, `legend.showTitle: false`.
+- Rótulos de dados: `labels.labelStyle: 'Data value, percent of total'` (mostra valor absoluto + %, não só %).
+- Fundo branco, borda `#E5E9F0` radius 8D, título `fontSize: 12D` cor `#15314F`.
 
 ## Slicers
 

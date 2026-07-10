@@ -239,24 +239,28 @@ def donut_vc(x, y, w, h, table, cat_field, val_field, title="", agg="CountNonNul
             "objects": {
                 "legend": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
-                    "position": {"expr": {"Literal": {"Value": "'RightCenter'"}}}
+                    "position": {"expr": {"Literal": {"Value": "'BottomCenter'"}}},
+                    "showTitle": {"expr": {"Literal": {"Value": "false"}}}
                 }}],
                 "labels": [{"properties": {
-                    "labelStyle": {"expr": {"Literal": {"Value": "'Percent of total'"}}},
-                    "percentageLabelPrecision": {"expr": {"Literal": {"Value": "0L"}}}
+                    "labelStyle": {"expr": {"Literal": {"Value": "'Data value, percent of total'"}}}
                 }}]
             },
             "vcObjects": {
                 "title": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
                     "text": {"expr": {"Literal": {"Value": f"'{title}'"}}},
-                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}}
+                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}},
+                    "fontSize": {"expr": {"Literal": {"Value": "12D"}}}
                 }}],
                 "background": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
                     "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#FFFFFF'"}}}}}
                 }}],
-                "border": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}]
+                "border": [{"properties": {
+                    "show": {"expr": {"Literal": {"Value": "true"}}},
+                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#E5E9F0'"}}}}},
+                    "radius": {"expr": {"Literal": {"Value": "8D"}}}}}]
             }
         }
     }
@@ -295,22 +299,73 @@ def bar_vc(x, y, w, h, table, cat_field, val_field, title="", agg="CountNonNull"
                 "categoryAxis": [{"properties": {
                     "showAxisTitle": {"expr": {"Literal": {"Value": "false"}}}
                 }}],
-                "valueAxis": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}]
+                "valueAxis": [{"properties": {
+                    "show": {"expr": {"Literal": {"Value": "false"}}},
+                    "showAxisTitle": {"expr": {"Literal": {"Value": "false"}}}
+                }}]
             },
             "vcObjects": {
                 "title": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
                     "text": {"expr": {"Literal": {"Value": f"'{title}'"}}},
-                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}}
+                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}},
+                    "fontSize": {"expr": {"Literal": {"Value": "12D"}}}
                 }}],
                 "background": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
                     "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#FFFFFF'"}}}}}
                 }}],
-                "border": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}]
+                "border": [{"properties": {
+                    "show": {"expr": {"Literal": {"Value": "true"}}},
+                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#E5E9F0'"}}}}},
+                    "radius": {"expr": {"Literal": {"Value": "8D"}}}}}]
             }
         }
     }
+    return vc(x, y, w, h, cfg, z, tab)
+
+def grouped_bar_vc(x, y, w, h, dim_table, dim_field, measures, title="", z=0, tab=0):
+    """
+    Colunas agrupadas (clusteredColumnChart) com VÁRIAS medidas como séries.
+    Validado em produção: legenda no topo, eixo Y oculto, categoria = dimensão.
+    measures: lista de nomes de medida em _Medidas (ex: ["Admitidos","Demitidos","Transferidos"]).
+    """
+    src_dim = get_src(dim_table)
+    cat_e, cat_ref, _ = _select_entry(dim_table, src_dim, dim_field, None, None)
+    select = [cat_e]
+    y_proj = []
+    froms = [{"Name": src_dim, "Entity": dim_table, "Type": 0}]
+    seen = {dim_table}
+    for mname in measures:
+        m_e, m_ref, m_src = measure_entry("_Medidas", mname)
+        select.append(m_e)
+        y_proj.append({"queryRef": m_ref})
+        if "_Medidas" not in seen:
+            froms.append({"Name": m_src, "Entity": "_Medidas", "Type": 0}); seen.add("_Medidas")
+    cfg = {
+        "name": uid(), "layouts": [{"id": 0, "position": pos(x, y, w, h, z, tab)}],
+        "singleVisual": {
+            "visualType": "clusteredColumnChart",
+            "projections": {"Category": [{"queryRef": cat_ref, "active": True}], "Y": y_proj},
+            "prototypeQuery": {"Version": 2, "From": froms, "Select": select},
+            "drillFilterOtherVisuals": True, "hasDefaultSort": True,
+            "objects": {
+                "legend": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                    "position": {"expr": {"Literal": {"Value": "'Top'"}}}}}],
+                "categoryAxis": [{"properties": {"showAxisTitle": {"expr": {"Literal": {"Value": "false"}}}}}],
+                "valueAxis": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}},
+                    "showAxisTitle": {"expr": {"Literal": {"Value": "false"}}}}}],
+                "labels": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}}}}]},
+            "vcObjects": {
+                "title": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                    "text": {"expr": {"Literal": {"Value": f"'{title}'"}}},
+                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}},
+                    "fontSize": {"expr": {"Literal": {"Value": "12D"}}}}}],
+                "background": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#FFFFFF'"}}}}}}}],
+                "border": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#E5E9F0'"}}}}},
+                    "radius": {"expr": {"Literal": {"Value": "8D"}}}}}]}}}
     return vc(x, y, w, h, cfg, z, tab)
 
 def slicer_vc(x, y, w, h, table, field, label=None, z=0, tab=0):
@@ -557,12 +612,12 @@ def table_vc(x, y, w, h, table, fields, title="", z=0, tab=0):
             "objects": {
                 "grid": [{"properties": {
                     "gridVertical": {"expr": {"Literal": {"Value": "false"}}},
-                    "rowPadding": {"expr": {"Literal": {"Value": "3D"}}}
+                    "rowPadding": {"expr": {"Literal": {"Value": "2D"}}}
                 }}],
                 "columnHeaders": [{"properties": {
                     "fontSize": {"expr": {"Literal": {"Value": "9D"}}},
                     "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#FFFFFF'"}}}}},
-                    "backColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#118DFF'"}}}}}
+                    "backColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}}
                 }}],
                 "values": [{"properties": {"fontSize": {"expr": {"Literal": {"Value": "9D"}}}}}]
             },
@@ -574,15 +629,15 @@ def table_vc(x, y, w, h, table, fields, title="", z=0, tab=0):
                 }}],
                 "border": [{"properties": {
                     "show": {"expr": {"Literal": {"Value": "true"}}},
-                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#E0E0E0'"}}}}},
-                    "radius": {"expr": {"Literal": {"Value": "4D"}}},
-                    "width": {"expr": {"Literal": {"Value": "1D"}}}
+                    "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#E5E9F0'"}}}}},
+                    "radius": {"expr": {"Literal": {"Value": "8D"}}}
                 }}],
                 "title": [{"properties": {
                     "text": {"expr": {"Literal": {"Value": f"'{title}'"}}},
                     "show": {"expr": {"Literal": {"Value": "true" if title else "false"}}},
                     "titleWrap": {"expr": {"Literal": {"Value": "true"}}},
-                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}}
+                    "fontColor": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}},
+                    "fontSize": {"expr": {"Literal": {"Value": "12D"}}}
                 }}]
             }
         }
@@ -1075,8 +1130,8 @@ def kpi_card_villa(x, y, w, h, measure, label, accent, icon_logical=None, z=0, t
     parts = []
     # barra de acento (5px à esquerda)
     parts.append(shape_vc(x, y, 5, h, accent, z=z + 5, tab=tab))
-    # label colorido, topo
-    parts.append(textbox_vc(x + 12, y + 10, w - 16, 22, label, "9pt", accent, True,
+    # label colorido, topo — altura 30px (validado: 22px corta o texto em fontes 9pt bold)
+    parts.append(textbox_vc(x + 12, y + 10, w - 16, 30, label, "9pt", accent, True,
                             z=z + 10, tab=tab, pad_left=6, pad_top=0))
     # card com o número (usa kpi_card medida). Assumimos measure em _Medidas.
     entry, ref, src = measure_entry("_Medidas", measure)
@@ -1093,7 +1148,7 @@ def kpi_card_villa(x, y, w, h, measure, label, accent, icon_logical=None, z=0, t
             "objects": {
                 "categoryLabels": [{"properties": {"show": {"expr": {"Literal": {"Value": "false"}}}}}],
                 "labels": [{"properties": {
-                    "fontSize": {"expr": {"Literal": {"Value": "28D"}}},
+                    "fontSize": {"expr": {"Literal": {"Value": "26D"}}},
                     "color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#15314F'"}}}}},
                     "fontFamily": {"expr": {"Literal": {"Value": "'Segoe UI Semibold'"}}}}}]},
             "vcObjects": {
