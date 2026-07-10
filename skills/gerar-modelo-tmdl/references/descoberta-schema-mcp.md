@@ -18,6 +18,13 @@ schema via MCP funciona igual (listar coleções/documentos, amostrar), mas a
 (aggregation pipeline no Mongo; leitura de coleção no Firestore). O objetivo
 não muda: extrair nomes e tipos REAIS dos campos antes de declarar as colunas.
 
+**APIs REST**: keywords adicionais de detecção — `http`, `fetch`, `rest`,
+`api`, `openapi`, `swagger`, `graphql`. Para APIs, MCP nem é obrigatório na
+descoberta: dá para amostrar o endpoint diretamente (curl/WebFetch) e derivar
+os campos do JSON real. NUNCA colocar credenciais em URL de teste visível;
+pedir ao usuário que forneça um endpoint de exemplo ou a spec OpenAPI/Swagger
+quando a API for autenticada.
+
 - **Uma candidata compatível com a fonte** → usar.
 - **Várias candidatas** → perguntar ao usuário qual servidor MCP corresponde
   à fonte do painel (o mesmo banco pode ter mais de um MCP configurado).
@@ -129,6 +136,37 @@ Ponderar com o usuário as duas pontes viáveis:
     conector nativo BigQuery — caminho recomendado para produção;
 (b) **REST via `Web.Contents`** — funciona para leitura pontual, mas
     autenticação/refresh no serviço exigem cuidado (token expira).
+
+**API REST genérica (`Web.Contents`)** — documentado, ainda não validado
+neste projeto:
+```
+let
+    Resposta = Web.Contents(
+        "https://api.exemplo.com",          // base SEMPRE estática (literal)
+        [
+            RelativePath = "v1/pedidos",     // caminho variável vai AQUI
+            Query = [status = "ativo", limit = "500"],
+            Headers = [#"x-api-key" = ChaveApi]   // parâmetro M, nunca literal
+        ]
+    ),
+    Json = Json.Document(Resposta),
+    Tabela = Table.FromRecords(Json[data])
+in
+    Tabela
+```
+Regras específicas de API (as que mais quebram refresh no serviço):
+1. **URL base literal + `RelativePath`/`Query`** — URL montada por concatenação
+   dinâmica é rejeitada no refresh agendado do serviço ("dynamic data source").
+2. **Credencial como parâmetro M** (`expressions.tmdl` no PBIP) ou no
+   gerenciador de credenciais — NUNCA hardcoded na query (vai parar no git!).
+3. **Paginação**: APIs paginadas exigem loop (`List.Generate`) — validar na
+   amostra se `data` vem completo ou paginado antes de declarar as colunas.
+4. **OAuth com token curto**: refresh agendado no serviço não renova token
+   custom — ponderar gateway, chave de serviço ou aterrissar os dados numa
+   fonte intermediária (banco/lake) que o Power BI leia nativamente.
+5. Tipos do JSON: number vira `double` por padrão (usar `int64`/`decimal` só
+   com evidência na amostra); datas chegam como string ISO → `dateTime` com
+   conversão explícita no M.
 
 Regras de escape do SQL dentro do M (todas as fontes): aspas duplas viram `""`;
 no mundo TOM/.pbix, quebras de linha viram `#(lf)`; no TMDL ficam literais.
