@@ -1395,3 +1395,125 @@ para usar uma medida DAX já definida no modelo. Ver seção "Referências de ca
 | Visual com erro de alias | Tabela com espaço/acento e alias gerado automaticamente | Usar TABLE_ALIAS dictionary explícito |
 | Aviso "Risco potencial" ao abrir | SecurityBindings zerado | Normal — clicar OK |
 | Gauge/card mostrando valor errado ou zerado | Usou coluna crua quando deveria ser medida DAX | Trocar `field` por `measure_ref("Nome da Medida")` |
+| PBIP crasha ao abrir (`Non-null assertion failure: query`) | Bug da versão June 2026 do Desktop (2.155.756.0) | Gerar .pbix diretamente via `pack_pbix_copy()` em vez de PBIP |
+| `writestr()` corrompe DataModel | Chamou `writestr(entry, data)` sem `copy.copy(ZipInfo)` no DataModel | Usar `new_entry = copy.copy(entry)` e `zout.writestr(new_entry, data)` para DataModel |
+| Layout substituído quando o usuário só queria copiar | Usou `pack_pbix()` (que substitui Layout) em vez de `pack_pbix_copy()` | Usar `pack_pbix_copy()` para preservar layout original |
+
+---
+
+## pack_pbix_copy — Modo cópia funcional (preserva layout)
+
+Quando o usuário não especificar `--novo-layout`, use `pack_pbix_copy()` em vez de `pack_pbix()`.
+Esta função **não substitui o layout** — apenas zera SecurityBindings e valida.
+
+```python
+def pack_pbix_copy(source_pbix, output_pbix):
+    """
+    Copia .pbix template preservando TODO o layout original.
+    Apenas zera SecurityBindings (obrigatório para abrir sem MashupValidationError).
+    Preserva compress_type=0 do DataModel (STORED).
+
+    Uso: pack_pbix_copy(template, output)
+    """
+    import os
+    if os.path.exists(output_pbix):
+        os.remove(output_pbix)
+
+    with zipfile.ZipFile(source_pbix, 'r') as zin:
+        with zipfile.ZipFile(output_pbix, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for entry in zin.infolist():
+                data = zin.read(entry.filename)
+
+                if entry.filename == "SecurityBindings":
+                    # Zera SecurityBindings (CRITICO)
+                    zout.writestr(entry, b"")
+                elif entry.filename == "DataModel":
+                    # Preserva compress_type original (STORED) via copy.copy
+                    new_entry = copy.copy(entry)
+                    zout.writestr(new_entry, data)
+                else:
+                    # Todos os outros arquivos: preserva como estão
+                    zout.writestr(entry, data)
+
+    # Validar resultado
+    print("\n=== Validando pbix gerado ===")
+    validate_pbix(output_pbix, expected_page_count=None)
+```
+
+## validate_pbix melhorada
+
+A função `validate_pbix()` deve ser chamada SEMPRE ao final de qualquer script, seja `pack_pbix` ou `pack_pbix_copy`. Ela detecta os erros mais comuns antes de abrir no Desktop:
+
+```python
+def validate_pbix(path, expected_page_count=None):
+    """
+    Abre o .pbix gerado e confere:
+      - SecurityBindings zerado (0 bytes)
+      - DataModel STORED (compress_type=0)
+      - Ausência de RemoteArtifacts
+      - Layout é JSON UTF-16 LE válido
+      - (opcional) número esperado de páginas e visuais
+
+    Se expected_page_count for None, apenas valida a estrutura sem conferir quantidade.
+    """
+    errors = []
+    with zipfile.ZipFile(path, 'r') as z:
+        entries = {i.filename: i for i in z.infolist()}
+
+        if "SecurityBindings" in entries:
+            sb = z.read("SecurityBindings")
+            if len(sb) > 0:
+                errors.append("SecurityBindings tem %d bytes (deveria ser 0)" % len(sb))
+            else:
+                print("[OK] SecurityBindings zerado")
+        else:
+            errors.append("SecurityBindings nao encontrado")
+
+        if "DataModel" in entries:
+            dm = entries["DataModel"]
+            if dm.compress_type != 0:
+                errors.append("DataModel compress_type=%d (deveria ser 0-STORED)" % dm.compress_type)
+            else:
+                print("[OK] DataModel STORED")
+        else:
+            errors.append("DataModel nao encontrado")
+
+        if any("RemoteArtifacts" in name for name in entries):
+            errors.append("RemoteArtifacts encontrado — DataModel no cloud")
+        else:
+            print("[OK] Sem RemoteArtifacts")
+
+        if "Report/Layout" in entries:
+            try:
+                import json
+                lay = json.loads(z.read("Report/Layout").decode('utf-16-le'))
+                pages = lay.get('sections', [])
+                total_vc = sum(len(s.get('visualContainers', [])) for s in pages)
+                print("[OK] Layout: %d paginas, %d visuais" % (len(pages), total_vc))
+
+                if expected_page_count and len(pages) != expected_page_count:
+                    errors.append("Esperava %d paginas, encontrou %d" % (expected_page_count, len(pages)))
+            except Exception as e:
+                errors.append("Layout invalido: %s" % e)
+        else:
+            errors.append("Report/Layout nao encontrado")
+
+    if errors:
+        print("\n[ERROS ENCONTRADOS]")
+        for e in errors:
+            print("  - %s" % e)
+        return False
+    else:
+        print("\n[VALIDACAO OK] Pronto para abrir no Power BI Desktop")
+        return True
+```
+
+## Checklist final obrigatório
+
+Antes de informar o usuário que o .pbix está pronto, o script deve:
+
+1. ✅ `validate_pbix()` passou sem erros
+2. ✅ SecurityBindings = 0 bytes
+3. ✅ DataModel compress_type = 0 (STORED)
+4. ✅ Sem RemoteArtifacts
+5. ✅ Layout é JSON UTF-16 LE válido

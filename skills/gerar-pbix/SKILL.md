@@ -1,28 +1,42 @@
 ---
 name: gerar-pbix
 description: Slash command para gerar um arquivo .pbix do Power BI via Python. Use quando o usuário digitar /gerar-pbix ou pedir para criar/gerar um painel Power BI programaticamente.
-argument-hint: <nome-do-projeto> [arquivo-template.pbix]
+argument-hint: <nome-do-projeto> [arquivo-template.pbix] [--novo-layout | --copiar-layout]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 1.0.0
+version: 1.1.0
 ---
 
 # /gerar-pbix — Gerador de Painéis Power BI
 
-Gera um arquivo `.pbix` válido do Power BI Desktop via Python, partindo de um `.pbix` template existente e substituindo apenas o `Report/Layout`.
+Gera um arquivo `.pbix` válido do Power BI Desktop via Python, partindo de um `.pbix` template existente.
 
 ## Fluxo de execução
 
 Quando o usuário invocar `/gerar-pbix <projeto>`, siga estes passos na ordem:
+
+### 0. Verificar objetivo do usuário
+
+- **`--copiar-layout` (padrão)**: copia o template .pbix, zera SecurityBindings e valida.
+  Preserva TODO o layout original (páginas, visuais, imagens, conexões). Útil para:
+  - Gerar uma cópia funcional de um painel existente
+  - Resolver erro "MashupValidationError"
+  - Quando o usuário só quer abrir o .pbix sem crash
+
+- **`--novo-layout`**: substitui o Report/Layout por visuais novos. Útil para:
+  - Gerar um painel novo com o mesmo DataModel do template
+  - Customizar páginas/visuais sem perder as queries do modelo
 
 ### 1. Coletar informações
 
 Pergunte (se não fornecidas nos argumentos):
 - **Nome do projeto** — será usado no nome do arquivo de saída
 - **Arquivo template** `.pbix` — deve ser um arquivo local com DataModel embutido (não conectado ao cloud). Recomendado: um `.pbix` já conectado à fonte de dados com os relacionamentos criados.
-- **Fonte de dados** — caminho da planilha Excel (`.xlsx`) ou banco de dados
-- **Páginas** — nomes das páginas do painel
-- **Visuais** de cada página — tipo (card, donut, barras, linha, área, combo, tabela, matriz, gauge, slicer), campos e tabelas
-- **Medidas DAX** — se o modelo já tiver medidas criadas, pergunte os nomes exatos; use `measure_ref("Nome")` em vez do nome de coluna (ver seção "Referências de campo" no template)
+- **Modo**: copiar layout (padrão) ou novo layout
+- **Se novo layout**:
+  - **Fonte de dados** — caminho da planilha Excel (`.xlsx`) ou banco de dados
+  - **Páginas** — nomes das páginas do painel
+  - **Visuais** de cada página — tipo (card, donut, barras, linha, área, combo, tabela, matriz, gauge, slicer), campos e tabelas
+  - **Medidas DAX** — se o modelo já tiver medidas criadas, pergunte os nomes exatos; use `measure_ref("Nome")` em vez do nome de coluna
 
 ### 2. Inspecionar o template
 
@@ -31,29 +45,41 @@ Antes de gerar, leia os metadados do template:
 ```python
 import zipfile
 with zipfile.ZipFile(template_path, 'r') as z:
-    entries = [(i.filename, i.compress_type, i.file_size) for i in z.infolist()]
-    # Verificar: tem 'SecurityBindings'? Tem 'DataModel'? Tem 'RemoteArtifacts'?
+    entries = {i.filename: i for i in z.infolist()}
+    # Verificacoes obrigatorias:
+    tem_datamodel  = "DataModel" in entries
+    tem_security   = "SecurityBindings" in entries
+    tem_remote     = any("RemoteArtifacts" in name for name in entries)
+    tem_layout     = "Report/Layout" in entries
+    dm_compress    = entries["DataModel"].compress_type if tem_datamodel else -1
 ```
 
 **BLOQUEANTE — NÃO usar o template se:**
 - Contiver entrada `RemoteArtifacts` no ZIP → DataModel está no cloud, não local → os visuais não vão funcionar
 - Estiver corrompido ou com senha
-
-**Inspecionar os campos das tabelas** (se fonte for Excel):
-```python
-import zipfile, xml.etree.ElementTree as ET
-with zipfile.ZipFile(xlsx_path, 'r') as z:
-    ns = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
-    ss = ET.fromstring(z.read('xl/sharedStrings.xml'))
-    ss_list = [''.join(t.text or '' for t in si.findall('.//m:t', ns)) for si in ss.findall('m:si', ns)]
-    # Para cada sheet, ler a primeira linha (headers)
-```
-
-Sempre confirme os nomes exatos dos campos (incluindo acentos, espaços, símbolos Unicode como `Nº`, `Ação`) antes de usar no `prototypeQuery`.
+- `DataModel` não existir ou `compress_type` não for 0 (STORED) — indica .pbix corrompido
 
 ### 3. Gerar o script Python
 
-Crie o script em `C:\Users\LEONAR~1.VIL\AppData\Local\Temp\claude\gerar_pbix_<projeto>.py` seguindo o template da referência. Consulte [template-script.md](references/template-script.md) para o código completo.
+Crie o script seguindo o template da referência. Consulte [template-script.md](references/template-script.md) para o código completo.
+
+#### Se `--copiar-layout` (padrão):
+
+O script vai:
+1. Copiar TODAS as entradas do template para o output
+2. SecurityBindings → gravar `b''` (zero bytes)
+3. DataModel → preservar com `compress_type` original (STORED)
+4. Report/Layout → preservar como está
+5. Validar o resultado
+
+#### Se `--novo-layout`:
+
+O script vai:
+1. Copiar todas as entradas EXCETO Report/Layout
+2. SecurityBindings → gravar `b''`
+3. DataModel → preservar STORED
+4. Report/Layout → substituir pelo novo layout gerado via funções do template
+5. Validar o resultado
 
 ### 4. Executar e testar
 
@@ -61,16 +87,22 @@ Crie o script em `C:\Users\LEONAR~1.VIL\AppData\Local\Temp\claude\gerar_pbix_<pr
 python "C:\Users\LEONAR~1.VIL\AppData\Local\Temp\claude\gerar_pbix_<projeto>.py"
 ```
 
-O script deve terminar chamando `validate_pbix(OUTPUT, expected_page_count=...)` — isso reabre
-o `.pbix` gerado e confere SecurityBindings, compress_type do DataModel, RemoteArtifacts e se o
-Layout é JSON válido, pegando os erros mais comuns antes de abrir no Power BI Desktop.
+O script DEVE terminar chamando `validate_pbix(OUTPUT)` — isso reabre
+o `.pbix` gerado e confere:
+- SecurityBindings está zerado (0 bytes)
+- DataModel está STORED (compress_type=0)
+- Não há RemoteArtifacts
+- Layout é JSON UTF-16 LE válido
+- Se `--novo-layout`: número de páginas e visuais conferem
 
 ### 5. Instruções para o usuário
 
 Após gerar:
 1. Abrir o `.pbix` gerado no Power BI Desktop
 2. Clicar **OK** no aviso "Risco potencial à segurança" — isso é normal e esperado
-3. Verificar cada visual e reportar qualquer erro
+3. Se aparecer diálogo de credenciais, configurar a fonte de dados
+4. Clicar em **Atualizar**
+5. Verificar cada visual e reportar qualquer erro
 
 ---
 
@@ -81,7 +113,7 @@ Consulte [template-script.md](references/template-script.md) para detalhes de im
 1. **SecurityBindings DEVE ser zerado** — gravar `b''` no lugar do blob DPAPI. Sem isso: `MashupValidationError`.
 2. **Layout em UTF-16 LE** sem BOM — `json.dumps(...).encode('utf-16-le')`
 3. **Preservar `compress_type`** de cada entrada do ZIP. DataModel deve ficar STORED (compress_type=0).
-4. **Usar `copy.copy(ZipInfo)`** para cada entrada — nunca criar um `ZipInfo` do zero.
+4. **Usar `copy.copy(ZipInfo)`** para entradas do DataModel — nunca criar um `ZipInfo` do zero.
 5. **Alias de tabela fixos** — nunca usar `table[0].lower()` como alias no `prototypeQuery`. Montar um dicionário `TABLE_ALIAS` explícito para cada tabela, especialmente as que têm espaços, acentos ou caracteres especiais.
 6. **Nomes de campos com Unicode exato** — `Nº` = U+00BA, `AÇÕES`/`Ação` com cedilha e til. Sempre verificar no XML do Excel antes de usar.
 
@@ -98,6 +130,7 @@ Consulte [template-script.md](references/template-script.md) para detalhes de im
 | Visual com erro de alias | Tabela com espaço/acento e alias gerado automaticamente | Usar TABLE_ALIAS dictionary explícito |
 | Aviso "Risco potencial" ao abrir | SecurityBindings zerado | Normal — clicar OK |
 | Gauge/card com valor errado ou zerado | Usou coluna crua onde o modelo espera uma medida DAX | Trocar por `measure_ref("Nome da Medida")` |
+| PBIP crasha ao abrir (`Non-null assertion failure: query`) | Bug da versão June 2026 do Desktop | Usar `--copiar-layout` para gerar .pbix diretamente (contorna o bug) |
 
 ## Catálogo de visuais
 
