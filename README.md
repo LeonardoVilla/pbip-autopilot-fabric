@@ -33,7 +33,9 @@ Nenhum Desktop aberto durante a geração. Nenhum hack de ZIP. A única
 intervenção manual é o refresh final (carga de dados exige o engine do
 Desktop ou o serviço/Fabric).
 
-## As 3 skills
+## As skills
+
+### Pipeline moderno (PBIP) — caminho principal
 
 ### `gerar-modelo-tmdl` — modelo semântico como código
 Escreve os arquivos TMDL do `*.SemanticModel/definition/`: tabelas (com as
@@ -50,6 +52,19 @@ layout e tema, usando os schemas públicos documentados. Sucessora da
 Estrutura de pastas, o que versionar e o que ignorar, `definition.pbir`
 (byPath × byConnection), e as armadilhas conhecidas do formato.
 
+### Pipeline legado (.pbix) — fallback validado em produção
+
+As 3 skills originais do PowerBI-Autopilot continuam incluídas e funcionais,
+para quando o alvo for um `.pbix` fechado (sem conversão para PBIP):
+
+- **`gerar-etl-tom`** — injeta modelo/ETL via TOM num Power BI Desktop
+  ABERTO (CLI C# em `tools/EtlTom`, .NET 6). Também segue útil no mundo PBIP
+  para ajuste fino de um modelo já aberto (hot-edit).
+- **`gerar-pbix`** — gera os visuais substituindo o `Report/Layout` do `.pbix`
+  via Python (formato legado; será descontinuado pela Microsoft no GA do PBIR).
+- **`pbix-context`** — regras críticas do `.pbix` (SecurityBindings, UTF-16LE,
+  compress_type).
+
 ## Roadmap
 
 Ver [docs/roadmap.md](docs/roadmap.md) — inclui o mapa de migração do
@@ -64,6 +79,7 @@ e a fase 2: deploy direto no Fabric via REST API (zero Desktop).
 - Opcional: [powerbi-modeling-mcp](https://github.com/microsoft/powerbi-modeling-mcp)
   para ajustes interativos num modelo aberto
 - Fase 2: capacidade Fabric ou workspace Pro (deploy via API, sem Desktop)
+- Pipeline legado: .NET 6 SDK (CLI `etl-tom`) e Python 3.x (`gerar-pbix`)
 
 ## Estrutura
 
@@ -72,6 +88,10 @@ skills/
   gerar-modelo-tmdl/   modelo semântico via TMDL (SKILL.md)
   gerar-visuais-pbir/  relatório via PBIR (SKILL.md)
   pbip-context/        regras críticas do formato PBIP
+  gerar-etl-tom/       [legado] ETL/modelo via TOM em .pbix aberto
+  gerar-pbix/          [legado] visuais/.pbix via Python + design system
+  pbix-context/        [legado] regras críticas do .pbix
+tools/EtlTom/          [legado] CLI C# (.NET 6) — Analysis Services local
 docs/
   roadmap.md           plano de migração e fases
 plugin.json            manifesto do plugin

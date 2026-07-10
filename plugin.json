@@ -6,6 +6,9 @@
   "skills": [
     "skills/gerar-modelo-tmdl",
     "skills/gerar-visuais-pbir",
-    "skills/pbip-context"
+    "skills/pbip-context",
+    "skills/gerar-etl-tom",
+    "skills/gerar-pbix",
+    "skills/pbix-context"
   ]
 }

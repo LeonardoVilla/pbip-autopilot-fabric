@@ -5,6 +5,10 @@
 # Saídas binárias
 *.pbix
 
+# .NET (tools/EtlTom)
+bin/
+obj/
+
 # Python
 __pycache__/
 *.pyc
