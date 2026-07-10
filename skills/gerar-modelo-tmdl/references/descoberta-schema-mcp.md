@@ -7,8 +7,16 @@ servidor MCP de banco de dados disponível na sessão — sem nomes fixos.
 
 Em runtime, examinar as ferramentas disponíveis com prefixo `mcp__`.
 Candidatas a acesso de banco: nome do servidor ou da ferramenta contendo
-`mssql`, `sqlserver`, `sql-server`, `mysql`, `mariadb`, `oracle`, `db`,
-`database`, `sql`, `query`, ou descrição mencionando consulta a banco.
+`mssql`, `sqlserver`, `sql-server`, `mysql`, `mariadb`, `oracle`, `postgres`,
+`postgresql`, `supabase`, `mongo`, `mongodb`, `firebase`, `firestore`,
+`bigquery`, `sharepoint`, `db`, `database`, `sql`, `query`, ou descrição
+mencionando consulta a banco/fonte de dados.
+
+**Fontes não-SQL** (Mongo, Firebase): o protocolo se adapta — a descoberta de
+schema via MCP funciona igual (listar coleções/documentos, amostrar), mas a
+"validação do SELECT" vira validação da consulta no dialeto da fonte
+(aggregation pipeline no Mongo; leitura de coleção no Firestore). O objetivo
+não muda: extrair nomes e tipos REAIS dos campos antes de declarar as colunas.
 
 - **Uma candidata compatível com a fonte** → usar.
 - **Várias candidatas** → perguntar ao usuário qual servidor MCP corresponde
@@ -47,16 +55,20 @@ Só seguir pela opção (d) com confirmação explícita.
 
 ## 4. Mapa de tipos → TMDL / --columns
 
-| TMDL / --columns | SQL Server | MySQL | Oracle |
-|---|---|---|---|
-| `int64` | int, bigint, smallint, tinyint | int, bigint, smallint | NUMBER(p,0) |
-| `string` | varchar, nvarchar, char, text | varchar, char, text | VARCHAR2, NVARCHAR2, CHAR, CLOB |
-| `decimal` | decimal, numeric, money | decimal, numeric | NUMBER(p,s) |
-| `double` | float, real | float, double | BINARY_DOUBLE, FLOAT |
-| `dateTime` | date, datetime, datetime2, smalldatetime | date, datetime, timestamp | DATE, TIMESTAMP |
-| `boolean` | bit | tinyint(1) ⚠ | (não nativo — usar NUMBER(1) → int64) |
+| TMDL / --columns | SQL Server | MySQL | Oracle | PostgreSQL/Supabase |
+|---|---|---|---|---|
+| `int64` | int, bigint, smallint, tinyint | int, bigint, smallint | NUMBER(p,0) | smallint, integer, bigint |
+| `string` | varchar, nvarchar, char, text | varchar, char, text | VARCHAR2, NVARCHAR2, CHAR, CLOB | text, varchar, char, uuid, jsonb ⚠ |
+| `decimal` | decimal, numeric, money | decimal, numeric | NUMBER(p,s) | numeric |
+| `double` | float, real | float, double | BINARY_DOUBLE, FLOAT | real, double precision |
+| `dateTime` | date, datetime, datetime2, smalldatetime | date, datetime, timestamp | DATE, TIMESTAMP | date, timestamp, timestamptz |
+| `boolean` | bit | tinyint(1) ⚠ | (não nativo — usar NUMBER(1) → int64) | boolean |
 
 ⚠ MySQL `tinyint(1)`: conferir na amostra se é booleano de fato ou contador.
+⚠ Postgres `jsonb`: chega como string — se precisar de campos internos,
+extrair no próprio SQL (`->>`), não no modelo.
+Mongo/Firestore: campos são dinâmicos por documento — derivar o "schema" da
+amostra via MCP e tratar campos ausentes como null na consulta.
 
 ## 5. Conectores M por fonte
 
@@ -97,6 +109,26 @@ let
 in
     ...
 ```
+
+**Supabase (= PostgreSQL)** — documentado, ainda não validado neste projeto.
+O Power BI tem conector PostgreSQL nativo; usar a conexão direta do Supabase
+(host `db.<ref>.supabase.co`, porta 5432 — não o pooler; SSL obrigatório):
+```
+PostgreSQL.Database("db.xxxx.supabase.co:5432", "postgres", [Query="SELECT ..."])
+```
+
+**MongoDB** — documentado, ainda não validado neste projeto. Usar o conector
+certificado **MongoDB Atlas SQL** (já embutido no Power BI Desktop; o antigo
+"BI Connector" tem EOL em set/2026 — não usar). A consulta usa o dialeto SQL
+da Atlas sobre as coleções; para modelagem, o caminho robusto é achatar os
+documentos numa view/consulta SQL Atlas antes de trazer para o modelo.
+
+**Firebase (Firestore/Realtime DB)** — SEM conector nativo no Power BI.
+Ponderar com o usuário as duas pontes viáveis:
+(a) **Firestore → BigQuery** (extensão oficial de export) e conectar via
+    conector nativo BigQuery — caminho recomendado para produção;
+(b) **REST via `Web.Contents`** — funciona para leitura pontual, mas
+    autenticação/refresh no serviço exigem cuidado (token expira).
 
 Regras de escape do SQL dentro do M (todas as fontes): aspas duplas viram `""`;
 no mundo TOM/.pbix, quebras de linha viram `#(lf)`; no TMDL ficam literais.
