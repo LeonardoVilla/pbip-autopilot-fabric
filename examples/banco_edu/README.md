@@ -9,6 +9,7 @@ Modelo de dados acadêmico/financeiro usado para validar o pipeline
 |---|---|
 | `ddl_novas_tabelas.sql` | DDL das 3 tabelas adicionadas (`dim_calendario`, `matriz_curricular`, `mensalidades`) |
 | `gerar_dados_banco_edu.py` | Gerador reproduzível (seed=42) que escala o banco com dados coerentes por 7 semestres |
+| `gerar_tmdl_banco_edu.py` | Gerador do modelo semântico TMDL (22 tabelas + 32 medidas + 28 relacionamentos) — inclui os validadores de ciclo/referência/medida-em-uma-linha, ver [gerar-modelo-tmdl/SKILL.md](../../skills/gerar-modelo-tmdl/SKILL.md) |
 | `medidas-dax.md` | Catálogo de medidas DAX — o que vive no modelo semântico do `.pbip` |
 | `modelo-semantico.md` | Esquema (2 fatos + dimensões conformadas), relacionamentos e as armadilhas de ambiguidade |
 | `dashboard_banco_edu.html` | Painel analítico interativo (referência visual dos visuais e KPIs) |
@@ -38,9 +39,26 @@ vazias. Foi escalado para servir de modelo de teste realista. Ver
 [modelo-semantico.md](modelo-semantico.md) para o ponto de atenção do caminho
 duplo `alunos ↔ turmas` que exige decidir o relacionamento ativo no Power BI.
 
+## Modelo TMDL — gerado e validado ponta a ponta (jul/2026)
+
+`gerar_tmdl_banco_edu.py` escreve as 22 tabelas + `_Medidas` + `relationships.tmdl`
+direto em `<projeto>.SemanticModel/definition/`, a partir do schema real e do
+catálogo de medidas/relacionamentos documentados aqui ao lado. Validado abrindo
+de fato no Power BI Desktop (não só gerado) — os erros reais encontrados nesse
+processo (medida DAX multi-linha, 1:1 sem `bothDirections`, ciclo de
+relacionamentos ativos) estão documentados em
+[gerar-modelo-tmdl/SKILL.md](../../skills/gerar-modelo-tmdl/SKILL.md).
+
+Conector usado: **`Odbc.Query`** via MySQL Connector/ODBC (não `MySQL.Database`
++ Connector/NET) — mais robusto, ver
+[descoberta-schema-mcp.md](../../skills/gerar-modelo-tmdl/references/descoberta-schema-mcp.md#mysql).
+Reexecutar após qualquer mudança de schema:
+```bash
+python gerar_tmdl_banco_edu.py "<caminho>/banco_edu.SemanticModel"
+```
+
 ## Próximo passo do pipeline
 
-Com o banco pronto, a skill `gerar-modelo-tmdl` escreve o modelo (tabelas +
-partições M via `MySQL.Database`, medidas de `medidas-dax.md`, relacionamentos de
-`modelo-semantico.md`) e a `gerar-visuais-pbir` escreve os visuais do painel —
-gerando o `.pbip` que abre no Power BI Desktop.
+Com o modelo TMDL pronto e validado, falta a `gerar-visuais-pbir` escrever os
+visuais do painel (17 visuais do `dashboard_banco_edu.html`) — fechando o
+`.pbip` ponta a ponta.

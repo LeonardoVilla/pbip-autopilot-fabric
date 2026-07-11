@@ -3,7 +3,7 @@ name: gerar-modelo-tmdl
 description: Gera/edita o modelo semântico de um projeto Power BI (PBIP) escrevendo arquivos TMDL - tabelas com ETL Power Query M, medidas DAX, colunas calculadas e relacionamentos. Usa qualquer MCP de banco disponível (MSSQL, MySQL, Oracle, PostgreSQL/Supabase, MongoDB, Firebase, SharePoint) ou chamada direta a APIs REST para descobrir schema e validar a consulta antes de embutir no M. Use quando o usuário pedir para criar tabela a partir de SQL, adicionar medida/relacionamento, ou montar o modelo de um painel sem abrir o Power BI Desktop. Não requer Desktop aberto; opera sobre a pasta *.SemanticModel do .pbip.
 argument-hint: <pasta-do-projeto.pbip> <comando: add-table | add-measure | add-relationship | ...>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.1.0
+version: 0.2.0
 ---
 
 # /gerar-modelo-tmdl — Modelo semântico como código (TMDL)
@@ -12,9 +12,11 @@ Escreve o modelo semântico diretamente nos arquivos TMDL do projeto PBIP,
 sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 [PowerBI-Autopilot](https://github.com/LeonardoVilla/PowerBI-Autopilot).
 
-> **STATUS: esqueleto em validação.** As regras abaixo vêm da documentação
-> oficial (learn.microsoft.com). Conforme forem validadas em produção,
-> marcar com ✅ (padrão do projeto anterior).
+> **STATUS: parcialmente validado.** Geração de tabelas/medidas/relacionamentos
+> TMDL e conector MySQL validados em produção (banco_edu, jul/2026 — ver
+> seção "Regras de TMDL validadas na prática"). Demais conectores (Oracle,
+> PostgreSQL, MongoDB, API REST) ainda vêm da documentação oficial
+> (learn.microsoft.com); marcar com ✅ conforme forem validados.
 
 ## Estrutura alvo
 
@@ -145,6 +147,95 @@ WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
 3. **Commitar antes de gerar** — o "undo" natural é `git restore`.
 4. **Medidas**: ficam dentro do arquivo da tabela dona (`measure 'Nome' = <DAX>`);
    tabelas "grupo de medidas" seguem a mesma convenção do projeto anterior.
+
+## Regras de TMDL validadas na prática (banco_edu, jul/2026)
+
+Descobertas via erro real do parser/engine do Desktop (não documentação) ao
+gerar um modelo de 22 tabelas + 32 medidas + 28 relacionamentos programaticamente.
+Ver o gerador de referência em `examples/banco_edu/gerar_tmdl_banco_edu.py`
+(inclui os três validadores abaixo prontos para reuso).
+
+### 1. Medida DAX: sempre uma única linha
+
+O parser TMDL **não aceita** continuação "solta" (só indentada) dentro de uma
+expressão de `measure` — só o `source =` do M aceita esse estilo de
+continuação multi-linha. Quebrar uma medida em várias linhas gera:
+
+```
+TMDL Format Error: Parsing error type - InvalidLineType
+Detailed error - Unexpected line type: Other!
+```
+
+Escrever toda `measure 'Nome' = <expressão DAX>` em **uma única linha**, por
+mais longa que a expressão fique (DAX não liga para quebra de linha).
+Validador de defesa (assert na hora de gerar): rejeitar qualquer expressão de
+medida que contenha `\n`.
+
+### 2. Relacionamento 1:1 exige `crossFilteringBehavior: bothDirections`
+
+O motor Analysis Services **rejeita** um relacionamento `fromCardinality: one`
++ `toCardinality: one` sem `crossFilteringBehavior: bothDirections` explícito
+— o padrão (`OneDirection`) é proibido especificamente para 1:1:
+
+```
+'<relacionamento>' tem a CrossFilterDirection definida como OneDirection.
+A CrossFilterDirection para relacionamentos Um para Um deve sempre ser
+definida como BothDirections.
+```
+
+Sempre que declarar `fromCardinality: one` + `toCardinality: one`, incluir
+`crossFilteringBehavior: bothDirections` junto.
+
+### 3. O grafo de relacionamentos ATIVOS precisa ser uma árvore (sem ciclos)
+
+Se duas tabelas se conectam por **mais de um caminho ativo** (ex.: A→B→C e
+A→D→C), o Desktop recusa o modelo:
+
+```
+Há caminhos ambíguos entre 'X' e 'Y': 'X'->'A'->'Y' e 'X'->'B'->'Y'
+```
+
+Isso acontece com mais frequência do que parece — qualquer tabela "ponte"
+(fato de junção, tabela de dimensão compartilhada) que se liga a duas tabelas
+já conectadas por outro caminho cria esse ciclo. **Validar isso ANTES de abrir
+no Desktop**, com union-find sobre o grafo de relacionamentos ativos (tabela
+= nó, relacionamento ativo = aresta; qualquer aresta que uniria dois nós já
+no mesmo conjunto fecha um ciclo = ambiguidade):
+
+```python
+def validar_grafo_sem_ciclos(rels):
+    parent = {}
+    def find(x):
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    ciclos = []
+    for ft, fc, tt, tc, active, _ in rels:
+        if not active:
+            continue
+        ra, rb = find(ft), find(tt)
+        if ra == rb:
+            ciclos.append((ft, fc, tt, tc))
+        else:
+            parent[ra] = rb
+    assert not ciclos, f"Caminhos ambíguos: {ciclos}"
+```
+
+Ao decidir qual aresta do ciclo inativar, priorizar o vínculo **mais
+operacional** (ex.: `turmas_disciplinas→disciplinas` fica ativo porque é
+essencial para o modelo; `disciplinas→departamentos` fica inativo porque o
+caminho via `cursos→departamentos` já é o oficial) — a escolha é semântica,
+o validador só aponta ONDE está o ciclo, não qual lado cortar.
+
+### 4. Rodar os 3 validadores localmente antes de qualquer abertura no Desktop
+
+Além do grafo sem ciclos: (a) toda coluna referenciada em `relationships.tmdl`
+existe de fato na tabela (cross-check simples via regex/parse dos `.tmdl`);
+(b) parênteses de cada expressão de medida balanceados. Isso troca 4-5
+ciclos de "gerar → abrir no Desktop → ler erro → corrigir" por um `assert`
+que falha em segundos, localmente.
 
 ## Relação com as outras skills
 

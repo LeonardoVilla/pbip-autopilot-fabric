@@ -84,11 +84,58 @@ amostra via MCP e tratar campos ausentes como null na consulta.
 Sql.Database("SERVIDOR", "BANCO", [Query="SELECT ..."])
 ```
 
-**MySQL** — documentado, ainda não validado neste projeto. Requer o
-Connector/NET da MySQL instalado na máquina (sem ele o Desktop nem lista a fonte):
+**MySQL** — ✅ validado em produção (banco_edu, jul/2026). Duas rotas, e a
+escolha entre elas importa mais do que parece:
+
 ```
+-- Rota A: conector oficial "MySQL database" do Power BI
 MySQL.Database("servidor:3306", "banco", [Query="SELECT ..."])
 ```
+Exige o **MySQL Connector/NET** instalado E registrado como provedor ADO.NET
+para .NET Framework (`machine.config` → `DbProviderFactories`, invariant name
+`MySql.Data.MySqlClient`). Sem isso, cada tabela falha no refresh com:
+```
+Não conseguimos localizar um provedor de banco de dados com o nome
+invariável 'MySql.Data.MySqlClient'.
+```
+O instalador do Connector/NET normalmente registra isso sozinho — mas se o
+Connector/NET for desinstalado (ou nunca instalado, só o driver ODBC), essa
+rota quebra por completo, mesmo com o MySQL acessível e outras ferramentas
+conectando normalmente.
+
+```
+-- Rota B (recomendada): Odbc.Query, sem depender de Connector/NET
+Odbc.Query(
+    "Driver={MySQL ODBC 9.7 Unicode Driver};Server=servidor;Port=3306;Database=banco;",
+    "SELECT ... FROM ..."
+)
+```
+Só precisa do **MySQL Connector/ODBC** (driver ODBC, também baixado do site
+oficial da Oracle — nenhum dos dois tem pacote no winget). Vantagens sobre a
+Rota A: `Odbc.Query` é função nativa do Power Query (não aparece como
+"conector não certificado"), e não trava se a versão do driver ADO.NET for
+muito nova/incompatível com o carregador de extensões do Desktop.
+
+⚠️ **Nunca embutir `Uid`/`Pwd` na connection string do ODBC** — o Power BI
+rejeita explicitamente:
+```
+ODBC: A cadeia de conexão é inválida. A propriedade da conexão 'uid' pode
+ser fornecida apenas usando credenciais.
+```
+Deixar só `Driver=...;Server=...;Port=...;Database=...;` na string e
+configurar usuário/senha separadamente na tela de credenciais do Desktop
+(**Editar credenciais → Banco de dados**) — como todas as tabelas devem usar
+a MESMA connection string (sem variar por tabela), isso gera **um único**
+prompt de credencial para todo o modelo, não um por tabela.
+
+Duas caixas de diálogo esperadas ao atualizar pela primeira vez (não são
+erro, é o Desktop pedindo aprovação):
+- **"Consulta de Banco de Dados Nativa"** — aparece por causa do `[Query=...]`
+  explícito; clicar **Executar** aprova (uma vez por query distinta).
+- **"Conectores Não Certificados"** (mais comum na Rota B/ODBC) — em
+  **Arquivo → Opções e configurações → Opções → Segurança** (seção Global),
+  habilitar "(Não recomendado) Permitir que qualquer extensão seja carregada
+  sem validação ou aviso" e reiniciar o Desktop.
 
 **Oracle** — documentado, ainda não validado neste projeto. Requer o client
 Oracle (ODP.NET/ODAC) instalado:
