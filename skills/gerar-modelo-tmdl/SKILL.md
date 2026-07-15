@@ -23,10 +23,16 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 >
 > **Legenda de confiança:** trechos marcados **✅ validado** foram abertos com
 > sucesso no Desktop por nós; trechos marcados **📄 doc oficial** vêm da
-> documentação/sample da Microsoft mas ainda não foram re-testados aqui (ex.:
-> `ref` opcional, medida DAX multi-linha, compatibilityLevel 1601). Se uma
+> documentação/sample da Microsoft mas ainda não foram re-testados aqui. Se uma
 > melhoria 📄 quebrar em uso, o ponto estável anterior está no histórico do
 > git (reverter para o commit imediatamente anterior à melhoria teórica).
+>
+> ✅ **Validado no Desktop em jul/2026** (PBIP de teste gerado da API do SIPLAN,
+> 21 tabelas, aberto com sucesso): **`ref` opcional/omitido** (as 21 tabelas
+> apareceram sem nenhuma linha `ref`), **`compatibilityLevel: 1601` +
+> `compatibilityMode: powerBI`**, e **medida DAX multi-linha** (`var`/`return`
+> indentado) — todas abriram sem erro de TMDL. As três deixam de ser 📄 e
+> passam a ✅.
 
 ## Fontes canônicas (conferir antes de inventar sintaxe)
 
