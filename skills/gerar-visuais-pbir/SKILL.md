@@ -56,6 +56,19 @@ mesma versão, nunca inventar a URL/versão.
 
 ## Regras críticas
 
+0. **O `report.json` precisa de `themeCollection.baseTheme` no `config`.** Um
+   report mínimo/vazio (ex.: só uma página em branco, útil quando o PBIP é "só
+   modelo" e o usuário monta os visuais depois) que traga apenas
+   `config: "{\"version\":\"...\"}"` sem `themeCollection` faz o Desktop falhar na
+   RENDERIZAÇÃO (abre o modelo, mas: `Erro ao renderizar o relatório —
+   TypeError: Cannot read properties of undefined (reading 'customTheme')`).
+   Incluir sempre, no mínimo:
+   ```json
+   "themeCollection": { "baseTheme": { "name": "CY23SU04", "version": "5.43", "type": 2 } }
+   ```
+   (Copiar `name`/`version` de um report gerado pelo próprio Desktop.) O
+   `customTheme` referencia um arquivo em `StaticResources/` — só incluir se o
+   arquivo de tema existir; para report vazio, o `baseTheme` sozinho basta.
 1. **NUNCA editar com o projeto aberto no Desktop** (Desktop sobrescreve ao salvar).
 2. **IDs de página/visual**: seguir o padrão dos gerados pelo Desktop
    (identificadores únicos, pasta = id). Copiar o formato, não inventar.

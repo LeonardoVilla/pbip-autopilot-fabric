@@ -14,9 +14,12 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 
 > **STATUS: parcialmente validado.** Geração de tabelas/medidas/relacionamentos
 > TMDL e conector MySQL validados em produção (banco_edu, jul/2026 — ver
-> seção "Regras de TMDL validadas na prática"). Demais conectores (Oracle,
-> PostgreSQL, MongoDB, API REST) ainda vêm da documentação oficial
-> (learn.microsoft.com); marcar com ✅ conforme forem validados.
+> seção "Regras de TMDL validadas na prática"). **API REST com token também
+> validada** (jul/2026, projeto SIPLAN — geração de PBIP do zero aberta com
+> sucesso no Desktop; ver "✅ Regras validadas no Power BI Desktop" e "Padrão
+> validado: fonte = API REST com token"). Demais conectores (Oracle,
+> PostgreSQL, MongoDB) ainda vêm da documentação oficial (learn.microsoft.com);
+> marcar com ✅ conforme forem validados.
 
 ## Estrutura alvo
 
@@ -91,6 +94,96 @@ Regras novas (TMDL):
   arquivos existentes no projeto.
 - Quebras de linha no M ficam literais dentro do bloco `source =` (não usar
   `#(lf)` como era necessário via TOM).
+
+## ✅ Regras validadas no Power BI Desktop (2026-07 — geração de PBIP do zero)
+
+Validado gerando um PBIP inteiro por script e abrindo no Desktop (release
+jun/2026). O Desktop dá o erro exato da linha, então cada item abaixo veio de um
+erro real corrigido:
+
+1. **NÃO escrever `ref table`/`ref expression` no `model.tmdl`.** Ao montar o
+   projeto manualmente, essas linhas causam
+   `TMDL Format Error: Unexpected line type: ReferenceObject`. As linhas `ref`
+   só são emitidas pela serialização interna do TOM (para preservar ordem); um
+   PBIP gerado à mão deve ter o `model.tmdl` **só com as propriedades do modelo**
+   (culture, defaultPowerBIDataSourceVersion, sourceQueryCulture). O modelo é
+   composto pela **presença dos arquivos** em `tables/` e `expressions.tmdl` —
+   tabelas/expressões não referenciadas mas com arquivo existente são anexadas.
+
+2. **Partição M — formato exato (validado contra um PBIP real da Microsoft):**
+   ```tmdl
+   table Turma
+   	partition Turma = m
+   		mode: import
+   		source =
+   				let
+   				    Fonte = ...
+   				in
+   				    Fonte
+
+   	annotation PBI_ResultType = Table
+   ```
+   O M vai indentado com **4 tabs** sob `source =` (2 além de `source`), **sem
+   backticks**, e a tabela termina com `annotation PBI_ResultType = Table`. Usar
+   backticks (` ``` `) funciona mas não é o formato que o Desktop emite —
+   preferir o formato acima.
+
+3. **Parâmetros do Power Query (Web/servidor):**
+   ```tmdl
+   expression BaseUrl = "https://exemplo/api" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+   	annotation PBI_ResultType = Text
+   ```
+   Ficam em `expressions.tmdl` no nível do model. Expressões M compartilhadas
+   (funções) usam `annotation PBI_ResultType = Function` e o M indentado com
+   **2 tabs** sob a declaração `expression Nome =`.
+
+4. **`definition.pbism`**: `{"version": "4.0", "settings": {}}` — a versão 4.0+
+   habilita o formato TMDL (pasta `definition/`).
+
+## Padrão validado: fonte = API REST com token (Web.Contents)
+
+Quando a fonte não é banco mas uma **API REST** (ex.: consumir os endpoints de
+um sistema web no Power BI), o padrão validado é:
+
+- **Parâmetros** `BaseUrl`, e credenciais (ex.: `ClientId`/`ClientSecret`) como
+  parâmetros do Power Query (bloco 3 acima). Podem vir com valor default
+  embutido para o arquivo já abrir pronto.
+- **Função `GetToken`** (expressão compartilhada) que faz `POST /token/` via
+  `Web.Contents` com o corpo JSON e devolve o `access_token`.
+- **Função `GetApi(rota)`** que chama `GetToken()`, faz o GET com
+  `Headers = [ Authorization = "Bearer " & token ]`, e converte a resposta com
+  `Table.FromList(...)`.
+- Cada tabela = uma partição que chama `GetApi("<rota>")` e **expande os
+  registros dinamicamente** (`Table.ExpandRecordColumn` com
+  `Record.FieldNames(Fonte{0}[Column1])`), para que campos novos do endpoint
+  apareçam sozinhos no Refresh — sem declarar colunas fixas.
+- **Autenticação de rede**: o Desktop pede uma vez por máquina o nível de acesso
+  à URL (escolher **Anônimo** quando a API autentica pelo corpo/header, não pela
+  auth nativa do Power BI). Isso NÃO é configurável pelo arquivo — documentar
+  para o usuário.
+
+> **Gabarito completo e copiável** (estrutura de arquivos, TMDL de cada arquivo,
+> report.json com tema e tabela de erros reais → correção):
+> [references/pbip-api-rest.md](references/pbip-api-rest.md).
+
+Exemplo real do `GetApi` (o `GetToken` segue a mesma ideia, com POST):
+```
+let
+    GetApi = (rota as text) as table =>
+        let
+            token = GetToken(),
+            resposta = Web.Contents(BaseUrl & "/" & rota & "/", [ Headers = [ Authorization = "Bearer " & token ] ]),
+            json = Json.Document(resposta),
+            tabela =
+                if json is list then
+                    Table.FromList(json, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+                else
+                    Table.FromList({json}, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+        in
+            tabela
+in
+    GetApi
+```
 
 ## Tabela calendário (dim_calendario) — SEMPRE dinâmica, nunca fixar datas
 
