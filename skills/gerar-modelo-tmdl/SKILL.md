@@ -20,6 +20,37 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 > validado: fonte = API REST com token"). Demais conectores (Oracle,
 > PostgreSQL, MongoDB) ainda vêm da documentação oficial (learn.microsoft.com);
 > marcar com ✅ conforme forem validados.
+>
+> **Legenda de confiança:** trechos marcados **✅ validado** foram abertos com
+> sucesso no Desktop por nós; trechos marcados **📄 doc oficial** vêm da
+> documentação/sample da Microsoft mas ainda não foram re-testados aqui (ex.:
+> `ref` opcional, medida DAX multi-linha, compatibilityLevel 1601). Se uma
+> melhoria 📄 quebrar em uso, o ponto estável anterior está no histórico do
+> git (reverter para o commit imediatamente anterior à melhoria teórica).
+
+## Fontes canônicas (conferir antes de inventar sintaxe)
+
+Estas são as referências oficiais/modernas que validam (ou corrigem) as regras
+desta skill — sempre preferir copiar formato delas a fixar de memória:
+
+- **Sample real da Microsoft** (um PBIP completo, formato de referência):
+  [`microsoft/Analysis-Services` › `pbidevmode/fabricps-pbip/SamplePBIP`][sample].
+  Tem `model.tmdl` (com `ref`), `database.tmdl` (compatibilityLevel 1601),
+  `expressions.tmdl`, `relationships.tmdl` e `tables/`.
+- **Skills oficiais de autoria (Microsoft)**:
+  [`microsoft/skills-for-fabric`](https://github.com/microsoft/skills-for-fabric)
+  — `skills/semantic-model-authoring/` e `common/ITEM-DEFINITIONS-CORE.md`.
+- **Spec da linguagem**: [TMDL overview][tmdl-ov] e
+  [SemanticModel definition (Fabric REST)](https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/semantic-model-definition).
+- **Schemas JSON p/ validar PBIR**:
+  [`microsoft/json-schemas` › `fabric/item`](https://github.com/microsoft/json-schemas/tree/main/fabric/item).
+
+> **`byPath` vs `byConnection`** (importante ao ir além do Desktop local): o
+> `definition.pbism`/`definition.pbir` referencia o modelo por **`byPath`**
+> (pasta local — cenário desta skill, abrir no Desktop) OU **`byConnection`**
+> (modelo publicado). A **Fabric REST API só aceita `byConnection`** (não
+> `byPath`); então um PBIP `byPath` gerado aqui abre no Desktop mas, para deploy
+> programático via API do Fabric, é preciso trocar para `byConnection`.
 
 ## Estrutura alvo
 
@@ -27,14 +58,18 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 <Projeto>.SemanticModel/
   definition.pbism
   definition/
-    database.tmdl
-    model.tmdl            # referências às tabelas, annotations
+    database.tmdl         # compatibilityLevel: 1601 + compatibilityMode: powerBI
+    model.tmdl            # propriedades do model; `ref` é OPCIONAL (só ordena)
     expressions.tmdl      # parâmetros / expressões compartilhadas M
     relationships.tmdl    # todos os relacionamentos
     tables/
       <NomeTabela>.tmdl   # colunas, medidas, hierarquias, partição com o M
+    cultures/  roles/     # (quando houver) — 1 arquivo por cultura/role
   .pbi/                   # NÃO versionar (localSettings.json, cache.abf)
 ```
+
+[sample]: https://github.com/microsoft/Analysis-Services/tree/master/pbidevmode/fabricps-pbip/SamplePBIP
+[tmdl-ov]: https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview
 
 ## Fluxo de execução
 
@@ -101,14 +136,31 @@ Validado gerando um PBIP inteiro por script e abrindo no Desktop (release
 jun/2026). O Desktop dá o erro exato da linha, então cada item abaixo veio de um
 erro real corrigido:
 
-1. **NÃO escrever `ref table`/`ref expression` no `model.tmdl`.** Ao montar o
-   projeto manualmente, essas linhas causam
-   `TMDL Format Error: Unexpected line type: ReferenceObject`. As linhas `ref`
-   só são emitidas pela serialização interna do TOM (para preservar ordem); um
-   PBIP gerado à mão deve ter o `model.tmdl` **só com as propriedades do modelo**
-   (culture, defaultPowerBIDataSourceVersion, sourceQueryCulture). O modelo é
-   composto pela **presença dos arquivos** em `tables/` e `expressions.tmdl` —
-   tabelas/expressões não referenciadas mas com arquivo existente são anexadas.
+1. **`ref table`/`ref expression` no `model.tmdl` é OPCIONAL — ao gerar à mão,
+   o mais seguro é OMITIR.** Confirmado na doc oficial ([tmdl-overview][tmdl-ov]):
+   o `ref` serve **só para preservar a ordem das coleções** em roundtrips
+   TOM↔TMDL. A composição do modelo vem da **presença dos arquivos**:
+   > "Objects referenced in TMDL but with missing TMDL file, are ignored.
+   > Objects not referenced but with existing TMDL file, are appended to the
+   > end of the collection."
+
+   Ou seja: um `model.tmdl` **só com as propriedades do modelo** (culture,
+   defaultPowerBIDataSourceVersion, sourceQueryCulture) funciona — cada arquivo
+   em `tables/` e cada expressão em `expressions.tmdl` é anexado ao modelo pela
+   sua existência. O `ref` só define a ordem de exibição.
+
+   ⚠️ **Correção de uma versão anterior desta skill:** dizíamos "NUNCA usar
+   `ref`, causa erro". Errado — o próprio [sample oficial da Microsoft][sample]
+   (`Sales.SemanticModel/definition/model.tmdl`) **usa** `ref table Calendar`,
+   `ref table Sales`, etc. O erro real que vimos
+   (`Unexpected line type: ReferenceObject`) veio de um `ref` **mal-formado /
+   incompleto** (item sem arquivo correspondente ou sintaxe do bloco truncada),
+   não do `ref` em si. **Regra prática:** se você não vai emitir o bloco `ref`
+   completo e consistente com os arquivos, simplesmente **não escreva `ref`** —
+   a ordem fica alfabética/por anexação, o que é aceitável em geração automática.
+
+   [tmdl-ov]: https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview
+   [sample]: https://github.com/microsoft/Analysis-Services/tree/master/pbidevmode/fabricps-pbip/SamplePBIP
 
 2. **Partição M — formato exato (validado contra um PBIP real da Microsoft):**
    ```tmdl
@@ -139,6 +191,19 @@ erro real corrigido:
 
 4. **`definition.pbism`**: `{"version": "4.0", "settings": {}}` — a versão 4.0+
    habilita o formato TMDL (pasta `definition/`).
+
+5. **`database.tmdl` — usar `compatibilityLevel` ≥ 1601 e `compatibilityMode`.**
+   O [sample oficial da Microsoft][sample] emite:
+   ```tmdl
+   database Unknown
+   	compatibilityLevel: 1601
+   	compatibilityMode: powerBI
+   ```
+   `1601` é hoje o padrão para modelos novos (é o default do Tabular Editor
+   também); nível mais alto destrava recursos mais novos (ex.: Format String
+   Expression). **Não usar níveis antigos (1550/1567) em modelo novo** — só se
+   for editar um modelo legado que já esteja nesse nível. A linha
+   `compatibilityMode: powerBI` deve estar presente.
 
 ## Padrão validado: fonte = API REST com token (Web.Contents)
 
@@ -248,21 +313,37 @@ gerar um modelo de 22 tabelas + 32 medidas + 28 relacionamentos programaticament
 Ver o gerador de referência em `examples/banco_edu/gerar_tmdl_banco_edu.py`
 (inclui os três validadores abaixo prontos para reuso).
 
-### 1. Medida DAX: sempre uma única linha
+### 1. Medida DAX: multi-linha É permitido — mas a INDENTAÇÃO tem de ser exata
 
-O parser TMDL **não aceita** continuação "solta" (só indentada) dentro de uma
-expressão de `measure` — só o `source =` do M aceita esse estilo de
-continuação multi-linha. Quebrar uma medida em várias linhas gera:
+A doc oficial ([tmdl-overview][tmdl-ov]) confirma que uma `measure` **pode** ter
+expressão multi-linha:
+> "The value is specified as a multi-line expression following the section
+> header."
 
+Ou seja, o formato canônico é o header seguido de linhas **indentadas**:
+```tmdl
+measure Quantidade =
+	var resultado = SUMX ( ... )
+	return resultado
+```
+
+O erro que vimos ao gerar à mão —
 ```
 TMDL Format Error: Parsing error type - InvalidLineType
 Detailed error - Unexpected line type: Other!
 ```
+veio de **indentação inconsistente** da continuação (misturar a tabulação do
+corpo com a do header), não de uma proibição de multi-linha.
 
-Escrever toda `measure 'Nome' = <expressão DAX>` em **uma única linha**, por
-mais longa que a expressão fique (DAX não liga para quebra de linha).
-Validador de defesa (assert na hora de gerar): rejeitar qualquer expressão de
-medida que contenha `\n`.
+**Atalho seguro à prova de erro (recomendado em geração automática):** escrever
+toda `measure 'Nome' = <expressão DAX>` em **uma única linha**. DAX ignora quebra
+de linha, então funciona sempre e elimina a classe inteira de erros de
+indentação. Só investir na formatação multi-linha quando a legibilidade
+importar (medida escrita para humano editar depois). Se optar por multi-linha,
+indentar cada linha da expressão com **exatamente um TAB a mais** que o
+`measure`, e nada de linha em branco no meio sem os backticks de bloco.
+
+[tmdl-ov]: https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview
 
 ### 2. Relacionamento 1:1 exige `crossFilteringBehavior: bothDirections`
 

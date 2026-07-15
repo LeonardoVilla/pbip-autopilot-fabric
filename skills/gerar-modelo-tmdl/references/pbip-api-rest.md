@@ -11,8 +11,8 @@ no Power BI Desktop (jun/2026). Padrão extraído do projeto SIPLAN (Django + DR
 <Projeto>.SemanticModel/
   definition.pbism                   # {"version":"4.0","settings":{}}
   definition/
-    database.tmdl                    # database <Nome> \n \tcompatibilityLevel: 1567
-    model.tmdl                       # SÓ propriedades do modelo (sem ref!)
+    database.tmdl                    # compatibilityLevel: 1601 + compatibilityMode: powerBI
+    model.tmdl                       # propriedades do modelo; ref é opcional (omitir é seguro)
     expressions.tmdl                 # parâmetros + funções GetToken/GetApi
     tables/<Tabela>.tmdl             # 1 por endpoint (partição M)
 <Projeto>.Report/
@@ -20,7 +20,13 @@ no Power BI Desktop (jun/2026). Padrão extraído do projeto SIPLAN (Django + DR
   report.json                        # report vazio COM themeCollection.baseTheme
 ```
 
-## model.tmdl (sem `ref` — crítico)
+## model.tmdl (só propriedades — `ref` é opcional)
+
+`ref` só ordena as coleções (doc oficial). Ao gerar à mão, **omitir é o mais
+seguro**: cada arquivo em `tables/`/`expressions.tmdl` é anexado pela presença.
+Só emitir `ref` se for o bloco completo e consistente com os arquivos — um `ref`
+truncado ou apontando p/ arquivo inexistente causa `Unexpected line type:
+ReferenceObject`.
 
 ```tmdl
 model Model
@@ -120,6 +126,6 @@ novos do endpoint aparecerem sozinhos no Refresh.)
 
 | Erro no Desktop | Causa | Correção |
 |---|---|---|
-| `Unexpected line type: ReferenceObject` | `ref table`/`ref expression` no model.tmdl | remover as linhas `ref` |
+| `Unexpected line type: ReferenceObject` | `ref` mal-formado/truncado no model.tmdl (ou apontando p/ arquivo inexistente) | omitir o `ref` (ele é opcional — só ordena) ou emitir o bloco completo |
 | `Cannot read properties of undefined (reading 'customTheme')` | report.json sem `themeCollection` | adicionar `themeCollection.baseTheme` |
 | modelo abre mas tabela vazia | JSON não expandido | `Table.ExpandRecordColumn` com `Record.FieldNames` |
