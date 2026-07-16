@@ -3,7 +3,7 @@ name: gerar-visuais-pbir
 description: Gera o relatório de um projeto Power BI (PBIP) escrevendo os JSONs do formato PBIR - páginas, visuais (card, tabela, matriz, gauge, linha, área, combo, donut, barras, slicer), filtros e layout. Use quando o usuário pedir para criar/gerar os visuais de um painel programaticamente. Não requer Desktop aberto; opera sobre a pasta *.Report do .pbip.
 argument-hint: <pasta-do-projeto.pbip> [nome-do-painel]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.3.0
+version: 0.4.0
 ---
 
 # /gerar-visuais-pbir — Relatório como código (PBIR)
@@ -181,13 +181,28 @@ onde "Detalhamento" = Drillthrough). No visual de origem, em
 "visualTooltip": [
   { "properties": {
       "show":    { "expr": { "Literal": { "Value": "true" } } },
-      "type":    { "expr": { "Literal": { "Value": "'ReportPage'" } } },
-      "section": { "expr": { "Literal": { "Value": "'<id-da-pagina-tooltip>'" } } }
+      "type":    { "expr": { "Literal": { "Value": "'Canvas'" } } },
+      "section": { "expr": { "Literal": { "Value": "'<id-da-pagina-tooltip>'" } } },
+      "sentenceTemplate":         { "expr": { "Literal": { "Value": "''" } } },
+      "showChartSpecificTooltips": { "expr": { "Literal": { "Value": "false" } } },
+      "showSentenceFormat":        { "expr": { "Literal": { "Value": "false" } } },
+      "showTooltipFieldsOnly":     { "expr": { "Literal": { "Value": "false" } } }
   } }
 ]
 ```
 
 `section` é o **`name` (GUID) da página-tooltip**, não o `displayName`.
+
+**`type` correto é `'Canvas'`, não `'ReportPage'`.** Confirmado em campo
+(VILLA MT, Painel-RM-Turnover-GERT, jul/2026): gerar o JSON com
+`type: 'ReportPage'` (valor citado em exemplos antigos/genéricos) faz o
+tooltip nativo da série prevalecer mesmo com `section` e as 3 propriedades
+`show*` corretas — o Desktop simplesmente não reconhece esse valor de enum
+como "página de relatório" na versão atual. O valor real que o Desktop grava
+ao configurar pela UI ("Dicas de ferramenta" → Tipo → "Página de relatório")
+é `'Canvas'`. **Sempre copiar o `type` de um `visualTooltip` gerado pelo
+próprio Desktop na versão em uso** (mesma regra geral do `$schema`) em vez de
+reaproveitar o valor de uma versão anterior da doc/skill.
 
 Armadilhas confirmadas:
 
@@ -205,6 +220,18 @@ Armadilhas confirmadas:
 - **"Modern Visual Tooltips" é GA e padrão** (não é mais preview removível). O
   popup padrão traz um "Actions footer" com Drill-through embutido; é esse popup
   pequeno que aparece, não o tooltip de página, quando algo está desalinhado.
+- **Gráfico com múltiplas séries mostrando o tooltip nativo (valores da série)
+  em vez da página customizada, mesmo com `section` aparentemente correto**:
+  quase sempre é o `type: 'ReportPage'` errado (ver correção acima — o valor
+  certo é `'Canvas'`) e/ou a falta de `showChartSpecificTooltips`/
+  `showSentenceFormat`/`showTooltipFieldsOnly` (`false`). Tabelas (`tableEx`)
+  não sofrem disso por não terem tooltip "específico de série" competindo.
+  **Se mesmo com o JSON corrigido o tooltip não disparar após reabrir**: no
+  Desktop, painel Formatar visual → Dicas de ferramenta, mude Tipo para
+  "Padrão" e volte para "Página de relatório", e mude Página para "Auto" e
+  volte para a página correta — essa interação força o Desktop a reconciliar
+  o estado (visto em campo: editar só o JSON não bastou numa ocasião, mesmo
+  com os valores corretos já presentes em disco).
 - **`displayOption`/tamanho**: gere a página-tooltip como o Desktop gera — a
   referência que funcionou usava `displayOption: "FitToPage"`. O Desktop mantém
   `visibility: "HiddenInViewMode"` em página-tooltip (readiciona ao salvar se
