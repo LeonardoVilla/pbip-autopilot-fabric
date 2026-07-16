@@ -3,7 +3,7 @@ name: gerar-visuais-pbir
 description: Gera o relatório de um projeto Power BI (PBIP) escrevendo os JSONs do formato PBIR - páginas, visuais (card, tabela, matriz, gauge, linha, área, combo, donut, barras, slicer), filtros e layout. Use quando o usuário pedir para criar/gerar os visuais de um painel programaticamente. Não requer Desktop aberto; opera sobre a pasta *.Report do .pbip.
 argument-hint: <pasta-do-projeto.pbip> [nome-do-painel]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.2.0
+version: 0.3.0
 ---
 
 # /gerar-visuais-pbir — Relatório como código (PBIR)
@@ -24,17 +24,35 @@ projetado pela Microsoft para edição programática. Sucessora da skill
 <Projeto>.Report/
   definition.pbir           # aponta o modelo: byPath (local) ou byConnection
   definition/
-    report.json             # config global do relatório
-    version.json
+    version.json            # OBRIGATÓRIO — define quais arquivos o Desktop espera carregar
+    report.json             # OBRIGATÓRIO — config global (themeCollection, filtros de relatório)
+    reportExtensions.json   # opcional — medidas em nível de relatório
+    bookmarks/              # opcional — 1 arquivo por bookmark + bookmarks.json (ordem/grupos)
+      bookmarks.json
+      <id-do-bookmark>.bookmark.json
     pages/
       pages.json            # ordem e página ativa
       <id-da-pagina>/
-        page.json           # nome, dimensões, displayName
+        page.json           # nome, dimensões, displayName, pageBinding (drillthrough/tooltip)
         visuals/
           <id-do-visual>/
             visual.json     # tipo, posição, campos, formatação
+            mobile.json     # opcional — layout mobile do visual
   StaticResources/          # imagens/ícones/tema (substitui RegisteredResources)
 ```
+
+`version.json` e `report.json` são **obrigatórios** (Microsoft Learn, "PBIR folder
+and files") — sem eles o Desktop não reconhece a pasta `definition/` como PBIR
+válido. `bookmarks/` só existe quando há pelo menos um bookmark (ex: os filtros
+por clique no card, ver `docs/filtro-bookmarks-cards.md` do Painel-RM) — cada
+bookmark é `<id>.bookmark.json`, nunca gerado à mão porque captura o estado
+real de filtros/seleções da página (arriscado reconstruir por fora; sempre
+criar pela interface do Desktop e só versionar o resultado).
+
+**Limites do PBIR** (aplicados pelo serviço, vale ter em mente ao gerar em
+massa): 1.000 páginas/relatório, 1.000 visuais/página, 1.000 arquivos de
+recurso, 300MB para recursos e 300MB para os arquivos do relatório. Nenhum
+painel VILLA atual chega perto, mas evitar gerar visuais duplicados por bug.
 
 Cada `*.json` declara `$schema` (developer.microsoft.com/json-schemas/fabric/…) —
 **sempre copiar o `$schema` de um arquivo gerado pelo próprio Desktop** na
@@ -70,13 +88,25 @@ mesma versão, nunca inventar a URL/versão.
    `customTheme` referencia um arquivo em `StaticResources/` — só incluir se o
    arquivo de tema existir; para report vazio, o `baseTheme` sozinho basta.
 1. **NUNCA editar com o projeto aberto no Desktop** (Desktop sobrescreve ao salvar).
-2. **IDs de página/visual**: seguir o padrão dos gerados pelo Desktop
-   (identificadores únicos, pasta = id). Copiar o formato, não inventar.
-3. **`definition.pbir` byPath** (modelo local na mesma pasta) é o cenário
+2. **IDs de página/visual**: seguir o padrão dos gerados pelo Desktop —
+   identificador único de 20 caracteres (ex: `90c2e07d8e84e7d5c026`), pasta = id.
+   Copiar o formato, não inventar. O nome/pasta só pode conter letras, dígitos,
+   `_` ou `-` (regex de "word chars" + hífen); renomear é suportado mas quebra
+   qualquer referência externa que apontava para o id antigo — exige reabrir o
+   Desktop depois (ele preserva o nome novo na próxima gravação).
+3. **`pageBinding.name` deve ser único no relatório inteiro** (drillthrough e
+   tooltip de página compartilham esse mecanismo — ver seção própria abaixo).
+   Copiar página com `pageBinding` de outro relatório sem trocar o `name` gera
+   o erro "Values for the 'pageBinding.name' property must be unique." Usar
+   sempre um GUID novo (padrão do Desktop desde jun/2024), nunca reaproveitar.
+4. **`definition.pbir` byPath** (modelo local na mesma pasta) é o cenário
    deste projeto; `byConnection` só para deploy via Fabric API (fase 2).
-4. **Medidas DAX**: referenciar por `Entity` + `Property` com o nome exato do
+5. **Medidas DAX**: referenciar por `Entity` + `Property` com o nome exato do
    TMDL (equivalente ao `measure_ref` do projeto anterior).
-5. **Commitar antes de gerar** — undo via `git restore`.
+6. **Commitar antes de gerar** — undo via `git restore`.
+7. **Bookmarks capturam dados reais do modelo** (ex: valor de um filtro fica
+   gravado no `.bookmark.json`) — nunca gerar bookmark à mão fora do Desktop;
+   só versionar o resultado depois de criado pela interface.
 
 ## Catálogo de visuais (a portar do projeto anterior)
 
