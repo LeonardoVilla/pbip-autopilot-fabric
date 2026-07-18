@@ -1,0 +1,133 @@
+table dim_calendario
+	lineageTag: b7e49d71-07df-43e5-87a8-d95da434f1e8
+
+	column data_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 243536c0-7aee-404c-8f3b-b7ca88e74b91
+		summarizeBy: none
+		sourceColumn: data_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column data
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 4a25fba6-f147-4d51-8000-c9e317f7dd27
+		summarizeBy: none
+		sourceColumn: data
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano
+		dataType: int64
+		formatString: 0
+		lineageTag: 37393757-a7bd-4407-9ee9-2d88b704cdf6
+		summarizeBy: none
+		sourceColumn: ano
+
+		annotation SummarizationSetBy = Automatic
+
+	column mes
+		dataType: int64
+		formatString: 0
+		lineageTag: 52e8869d-52b6-41fe-a6d9-056bc8362b08
+		summarizeBy: none
+		sourceColumn: mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia
+		dataType: int64
+		formatString: 0
+		lineageTag: a360646a-163b-4d14-9d43-67eb07ecc8d8
+		summarizeBy: none
+		sourceColumn: dia
+
+		annotation SummarizationSetBy = Automatic
+
+	column trimestre
+		dataType: int64
+		formatString: 0
+		lineageTag: c77f1d1a-fea8-4039-8bcb-3ebda29e70ca
+		summarizeBy: none
+		sourceColumn: trimestre
+
+		annotation SummarizationSetBy = Automatic
+
+	column semestre
+		dataType: int64
+		formatString: 0
+		lineageTag: 6b4f0b0a-b8c7-4faf-801a-29d5b5fbb6e3
+		summarizeBy: none
+		sourceColumn: semestre
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_mes
+		dataType: string
+		lineageTag: 03828ad0-9cb8-46e8-b0d6-3316ae793654
+		summarizeBy: none
+		sourceColumn: nome_mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_mes_abrev
+		dataType: string
+		lineageTag: edcc1637-47f4-461b-af05-78db6619794f
+		summarizeBy: none
+		sourceColumn: nome_mes_abrev
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_dia_semana
+		dataType: string
+		lineageTag: ebd5e02e-782e-48c2-a044-41f4c1502d50
+		summarizeBy: none
+		sourceColumn: nome_dia_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_semana
+		dataType: int64
+		formatString: 0
+		lineageTag: 346b921c-9f45-4188-bfc5-41434f19fcda
+		summarizeBy: none
+		sourceColumn: dia_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	column fim_de_semana
+		dataType: int64
+		formatString: 0
+		lineageTag: a0883d4f-61a5-44b5-9599-b7c8c3579fb7
+		summarizeBy: none
+		sourceColumn: fim_de_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano_mes
+		dataType: string
+		lineageTag: c2cfabca-1e78-45d7-ac93-cf039543be4c
+		summarizeBy: none
+		sourceColumn: ano_mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano_semestre
+		dataType: string
+		lineageTag: 08f1655e-fff2-4855-aee0-41eec3d7437b
+		summarizeBy: none
+		sourceColumn: ano_semestre
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_calendario = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT data_id, data, ano, mes, dia, trimestre, semestre, nome_mes, nome_mes_abrev, nome_dia_semana, dia_semana, fim_de_semana, ano_mes, ano_semestre FROM dim_calendario")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

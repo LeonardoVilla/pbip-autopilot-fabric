@@ -1,0 +1,63 @@
+table equipamentos_laboratorio
+	lineageTag: 67e421bc-5ebe-4e99-be25-0e2b63e9022d
+
+	column equipamento_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 14ff220c-c0d2-4ba4-b324-34c0901cfabd
+		summarizeBy: none
+		sourceColumn: equipamento_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column laboratorio_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 273d35f0-ba70-4504-b4ba-90e183aca4a4
+		summarizeBy: none
+		sourceColumn: laboratorio_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column patrimonio
+		dataType: string
+		lineageTag: 2643374d-746d-4790-a1a9-de3536626d01
+		summarizeBy: none
+		sourceColumn: patrimonio
+
+		annotation SummarizationSetBy = Automatic
+
+	column descricao
+		dataType: string
+		lineageTag: c7128b52-e1c4-4a62-b1df-d80506d21de4
+		summarizeBy: none
+		sourceColumn: descricao
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: cabbba94-57c7-4554-b0da-4ebb802c4327
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 4916dea2-f7ba-4677-97de-bb6bd302d373
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition equipamentos_laboratorio = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT equipamento_id, laboratorio_id, patrimonio, descricao, status, criado_em FROM equipamentos_laboratorio")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

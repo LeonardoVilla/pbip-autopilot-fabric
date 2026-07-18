@@ -1,0 +1,87 @@
+table turmas
+	lineageTag: 0a4b53ff-de1e-4ae8-8fe7-667e6146c153
+
+	column turma_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3fac10d8-4fec-4cb8-a50b-eefc745c67e9
+		summarizeBy: none
+		sourceColumn: turma_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column curso_id
+		dataType: int64
+		formatString: 0
+		lineageTag: ba598b93-09ae-4f01-bcb1-bb980a1cb22c
+		summarizeBy: none
+		sourceColumn: curso_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column codigo
+		dataType: string
+		lineageTag: cc4aa889-f3cb-4381-b3bf-0a27f7f23803
+		summarizeBy: none
+		sourceColumn: codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column semestre_letivo
+		dataType: string
+		lineageTag: e26390a2-c7ce-45d7-9537-67bb5ccaa095
+		summarizeBy: none
+		sourceColumn: semestre_letivo
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano_letivo
+		dataType: int64
+		formatString: 0
+		lineageTag: 51c704b1-e5ed-4b99-b513-9ff2d9c65084
+		summarizeBy: none
+		sourceColumn: ano_letivo
+
+		annotation SummarizationSetBy = Automatic
+
+	column turno
+		dataType: string
+		lineageTag: bcbea2aa-3df2-4fd7-a1b7-fe0638d6dd9b
+		summarizeBy: none
+		sourceColumn: turno
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: f732a852-ac78-49ce-8748-ad7e442c6485
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: f6040e29-e795-458c-857a-712861d9edd0
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Período' = [ano_letivo] & "/" & [semestre_letivo]
+		dataType: string
+		lineageTag: 43db7da1-09f2-4a2f-808a-ccbfc621ee94
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition turmas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT turma_id, curso_id, codigo, semestre_letivo, ano_letivo, turno, status, criado_em FROM turmas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

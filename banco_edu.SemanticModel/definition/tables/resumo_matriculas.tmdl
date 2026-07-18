@@ -1,0 +1,56 @@
+table resumo_matriculas
+	lineageTag: 022b3f53-8e59-4cef-8e2c-a9790d347bc2
+
+	column matricula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: bcbb4ebb-a5c1-4514-8b45-52bde34da9d8
+		summarizeBy: none
+		sourceColumn: matricula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column media_ponderada
+		dataType: decimal
+		formatString: 0.00
+		lineageTag: c75715f1-1607-4a4d-a001-6f556661acc4
+		summarizeBy: none
+		sourceColumn: media_ponderada
+
+		annotation SummarizationSetBy = Automatic
+
+	column total_avaliacoes
+		dataType: int64
+		formatString: 0
+		lineageTag: ac018067-f103-4e0d-a06d-b4430b5e7d52
+		summarizeBy: none
+		sourceColumn: total_avaliacoes
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_final
+		dataType: string
+		lineageTag: e03abb86-6cba-4d72-ae1a-4426fc828645
+		summarizeBy: none
+		sourceColumn: status_final
+
+		annotation SummarizationSetBy = Automatic
+
+	column atualizado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 0029aa78-e455-4923-9b5f-d068864c4b0e
+		summarizeBy: none
+		sourceColumn: atualizado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition resumo_matriculas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT matricula_id, media_ponderada, total_avaliacoes, status_final, atualizado_em FROM resumo_matriculas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

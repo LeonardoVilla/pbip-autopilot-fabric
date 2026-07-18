@@ -1,0 +1,39 @@
+table prerequisitos_disciplinas
+	lineageTag: 3ef6ec93-f3d5-4792-89ee-4ddba3c66672
+
+	column disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 70f51e4e-5bf5-4fcc-9ede-ede4255d8a05
+		summarizeBy: none
+		sourceColumn: disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column prerequisito_disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 2fb3a6c4-6f49-4591-b9ac-e6b0d25833e3
+		summarizeBy: none
+		sourceColumn: prerequisito_disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: ccc10291-a24e-49ee-bb1e-e2df32e827e8
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition prerequisitos_disciplinas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT disciplina_id, prerequisito_disciplina_id, criado_em FROM prerequisitos_disciplinas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,66 @@
+table matriz_curricular
+	lineageTag: 7d9514b7-b1f0-4de8-9e55-e9a73c18f76a
+
+	column matriz_id
+		dataType: int64
+		formatString: 0
+		lineageTag: ad06d058-a793-4c3d-8453-66c3eef2384c
+		summarizeBy: none
+		sourceColumn: matriz_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column curso_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 42557e24-e505-4e7f-a5a3-e23d1441c780
+		summarizeBy: none
+		sourceColumn: curso_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 30c11bef-bf3e-4d71-a279-83a214569ff8
+		summarizeBy: none
+		sourceColumn: disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column semestre_sugerido
+		dataType: int64
+		formatString: 0
+		lineageTag: 6f42646b-1ae7-459e-bff6-1bc57a4e62ff
+		summarizeBy: none
+		sourceColumn: semestre_sugerido
+
+		annotation SummarizationSetBy = Automatic
+
+	column obrigatoria
+		dataType: int64
+		formatString: 0
+		lineageTag: 4e58fdb1-fd72-4e5a-92cb-db353370aa14
+		summarizeBy: none
+		sourceColumn: obrigatoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: c1daeda6-1ef5-4215-ad25-f8febaf54177
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition matriz_curricular = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT matriz_id, curso_id, disciplina_id, semestre_sugerido, obrigatoria, criado_em FROM matriz_curricular")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

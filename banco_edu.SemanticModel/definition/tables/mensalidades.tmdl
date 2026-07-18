@@ -1,0 +1,100 @@
+table mensalidades
+	lineageTag: 79289f92-fdf4-403a-860f-6a0e73990587
+
+	column mensalidade_id
+		dataType: int64
+		formatString: 0
+		lineageTag: af9adac7-5d63-4a8a-b54b-2b6eff7bed61
+		summarizeBy: none
+		sourceColumn: mensalidade_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column aluno_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 7f92464a-ddd7-4840-af85-3f6fc9fcc1ec
+		summarizeBy: none
+		sourceColumn: aluno_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column competencia
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 94c55e33-b959-42d7-88cb-fdbd549f8565
+		summarizeBy: none
+		sourceColumn: competencia
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor
+		dataType: decimal
+		formatString: \R$\ #,0.00
+		lineageTag: c7511f52-66c8-4459-a7fe-19df8415e1be
+		summarizeBy: none
+		sourceColumn: valor
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_vencimento
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 8f35d52d-8c9f-4ffb-a405-17a04ba07a42
+		summarizeBy: none
+		sourceColumn: data_vencimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_pagamento
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: f08fc23f-3dab-427d-8df6-ce728a904747
+		summarizeBy: none
+		sourceColumn: data_pagamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor_pago
+		dataType: decimal
+		formatString: \R$\ #,0.00
+		lineageTag: 7ba9802b-1b25-4bad-8b37-9297e2ace6eb
+		summarizeBy: none
+		sourceColumn: valor_pago
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 18f7b6e1-3992-45f5-bb94-7a8ec505607a
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column forma_pagamento
+		dataType: string
+		lineageTag: 8f043f41-75c2-4149-89b4-de54a10f2073
+		summarizeBy: none
+		sourceColumn: forma_pagamento
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 8295f4f4-5305-4e83-a93f-6b419ba24b15
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition mensalidades = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT mensalidade_id, aluno_id, competencia, valor, data_vencimento, data_pagamento, valor_pago, status, forma_pagamento, criado_em FROM mensalidades")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

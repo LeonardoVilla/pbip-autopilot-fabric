@@ -1,0 +1,46 @@
+table blocos
+	lineageTag: 6b39c5bf-cf45-4b4b-8e46-299dcd4867d2
+
+	column bloco_id
+		dataType: int64
+		formatString: 0
+		lineageTag: c8a9ba37-a5ae-4bbb-b3a8-d1f57c6f2a21
+		summarizeBy: none
+		sourceColumn: bloco_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: cf5f4d29-2ece-40f0-99ea-c838234a9638
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column localizacao
+		dataType: string
+		lineageTag: f5f8f5d3-1a17-4954-8def-cff63c8d58e2
+		summarizeBy: none
+		sourceColumn: localizacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 40d15bb4-e7a1-42fe-9d49-1a7e1fe2608f
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition blocos = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT bloco_id, nome, localizacao, criado_em FROM blocos")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

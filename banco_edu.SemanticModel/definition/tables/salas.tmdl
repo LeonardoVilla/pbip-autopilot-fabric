@@ -1,0 +1,81 @@
+table salas
+	lineageTag: 0c512b81-c021-4eda-ad1b-3dd352b9d4f8
+
+	column sala_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 37cd27eb-eeae-4c7a-8c35-36e60e04adba
+		summarizeBy: none
+		sourceColumn: sala_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column bloco_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 48c7600d-d0a1-4111-aecd-3db6bc853fdc
+		summarizeBy: none
+		sourceColumn: bloco_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column codigo
+		dataType: string
+		lineageTag: b3beed9d-81b6-439a-875e-9dbc46e7c9bc
+		summarizeBy: none
+		sourceColumn: codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column capacidade
+		dataType: int64
+		formatString: 0
+		lineageTag: 90116e80-bda5-485e-82c7-02d50aa2b982
+		summarizeBy: none
+		sourceColumn: capacidade
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo
+		dataType: string
+		lineageTag: bd07f8f2-6de7-407c-ac48-3cd6776beed1
+		summarizeBy: none
+		sourceColumn: tipo
+
+		annotation SummarizationSetBy = Automatic
+
+	column recursos
+		dataType: string
+		lineageTag: d58b0bba-0e08-4562-8dde-f2b56b0dcfe9
+		summarizeBy: none
+		sourceColumn: recursos
+
+		annotation SummarizationSetBy = Automatic
+
+	column ativa
+		dataType: int64
+		formatString: 0
+		lineageTag: 6a6340a5-0685-4dea-8f80-9296a9ccc9e4
+		summarizeBy: none
+		sourceColumn: ativa
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 7d8973f7-a9a6-4f36-b636-bf9aec88f0c8
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition salas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT sala_id, bloco_id, codigo, capacidade, tipo, recursos, ativa, criado_em FROM salas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

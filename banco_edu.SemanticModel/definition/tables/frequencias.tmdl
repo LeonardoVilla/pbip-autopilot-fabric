@@ -1,0 +1,57 @@
+table frequencias
+	lineageTag: 1a582d47-480b-4f8f-a2e4-479d072d0832
+
+	column frequencia_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 170e3244-9f27-4a31-bf29-c0035ad736e9
+		summarizeBy: none
+		sourceColumn: frequencia_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column aula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: da18ed46-2eb6-4adf-86ca-95379b425aee
+		summarizeBy: none
+		sourceColumn: aula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column matricula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 7efaa5fc-6d5d-421a-a131-77033fce51b8
+		summarizeBy: none
+		sourceColumn: matricula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column presente
+		dataType: int64
+		formatString: 0
+		lineageTag: f5138da3-555b-4132-bae9-4b5d1ce0a79b
+		summarizeBy: none
+		sourceColumn: presente
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 8c540dfe-e30f-442a-bf48-ede4fe3aa9fd
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition frequencias = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT frequencia_id, aula_id, matricula_id, presente, criado_em FROM frequencias")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

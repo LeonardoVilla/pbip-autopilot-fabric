@@ -1,0 +1,308 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 3158.4424919844346,
+            "y": 644.44897661904236
+          },
+          "nodeIndex": "_Medidas",
+          "nodeLineageTag": "94a01550-2946-4e11-ab2c-97089920387c",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1851.8427794268598,
+            "y": 882.08820821357665
+          },
+          "nodeIndex": "alunos",
+          "nodeLineageTag": "5aae7919-fd61-421f-a650-0b4beb626cd8",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1198.3485262021882,
+            "y": 291.78942032745886
+          },
+          "nodeIndex": "aulas",
+          "nodeLineageTag": "8449a7ec-be79-4a62-bdce-bfb3925be747",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 908.08456529179261,
+            "y": 477.91491375546934
+          },
+          "nodeIndex": "avaliacoes",
+          "nodeLineageTag": "cf2393c0-422d-4f01-af0e-42dd36aa30f5",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 343.17062514994473,
+            "y": 614.958763237411
+          },
+          "nodeIndex": "blocos",
+          "nodeLineageTag": "1a36dfba-b02e-44d3-ac5c-c153d5ee15eb",
+          "size": {
+            "height": 176,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2633.1250027258634,
+            "y": 208.85139933969162
+          },
+          "nodeIndex": "cursos",
+          "nodeLineageTag": "80f6a236-eebc-41a5-956f-62bf9374222f",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2502.7237075794947,
+            "y": -50
+          },
+          "nodeIndex": "departamentos",
+          "nodeLineageTag": "bf1ba779-8bb0-401a-9c89-d15d1e488c36",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1406.3449068956161,
+            "y": 866.60410118710365
+          },
+          "nodeIndex": "dim_calendario",
+          "nodeLineageTag": "9db8e86f-1ba7-4c8c-99d0-fc46432063f8",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2436.7845130077503,
+            "y": 541.09250700104144
+          },
+          "nodeIndex": "disciplinas",
+          "nodeLineageTag": "1ce913bc-1530-49a0-b355-2455cab1ad37",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 926.76987504815872
+          },
+          "nodeIndex": "equipamentos_laboratorio",
+          "nodeLineageTag": "098f9e80-0e6a-4765-bf85-6b8cc3d718c0",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 933.38438217485327,
+            "y": 836.480841606976
+          },
+          "nodeIndex": "frequencias",
+          "nodeLineageTag": "30ed953c-21a0-4aa2-8b7e-d579751d15e2",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 342.9261166626784,
+            "y": 848.00288492189577
+          },
+          "nodeIndex": "laboratorios",
+          "nodeLineageTag": "56be7ad5-9387-4b1d-b38c-65262a126d1d",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1569.1304416220687,
+            "y": 559.95436223235333
+          },
+          "nodeIndex": "matriculas",
+          "nodeLineageTag": "1381a529-8f1b-48b8-95a6-dee2edc13a81",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2924.4424919844341,
+            "y": 31.367665713246652
+          },
+          "nodeIndex": "matriz_curricular",
+          "nodeLineageTag": "2973ebc0-cb91-4e6a-b602-fe5d3ca83184",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1691.6416079158982,
+            "y": 1238.8979532380847
+          },
+          "nodeIndex": "mensalidades",
+          "nodeLineageTag": "e5234338-7782-40cd-829f-5f0aea7bd8b9",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1624.1799498804828,
+            "y": 249.15792265876621
+          },
+          "nodeIndex": "notas",
+          "nodeLineageTag": "ae57c91a-29ca-4743-8e05-709a52cca58e",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2729.5951207988551,
+            "y": 890.18144008796821
+          },
+          "nodeIndex": "prerequisitos_disciplinas",
+          "nodeLineageTag": "6b86cf29-3ff1-40af-b354-43f814553a3c",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2152.7048992807295,
+            "y": 214.95480746466842
+          },
+          "nodeIndex": "professores",
+          "nodeLineageTag": "9c5bb8ec-8514-40a7-a959-94518149d503",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1113.5447950450573,
+            "y": 1091.4005954028871
+          },
+          "nodeIndex": "resumo_matriculas",
+          "nodeLineageTag": "620b9dca-a004-4555-ad65-0e8ca97cc8c6",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 640.30689507747616,
+            "y": 891.16093607098594
+          },
+          "nodeIndex": "salas",
+          "nodeLineageTag": "bbc30b47-1931-461b-be92-b7236f98ed6e",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2144.677089770084,
+            "y": 605.2970567755342
+          },
+          "nodeIndex": "turmas",
+          "nodeLineageTag": "571df893-361a-4ee7-94d8-c4e2f96af20d",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1858.3068754163423,
+            "y": 535.57104665466113
+          },
+          "nodeIndex": "turmas_disciplinas",
+          "nodeLineageTag": "00fe47de-5afc-4d89-99cd-4df69faf90c1",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "Todas as tabelas",
+      "zoomValue": 100,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "Todas as tabelas",
+  "defaultDiagram": "Todas as tabelas"
+}

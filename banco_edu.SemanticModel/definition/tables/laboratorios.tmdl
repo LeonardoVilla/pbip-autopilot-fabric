@@ -1,0 +1,72 @@
+table laboratorios
+	lineageTag: a4831598-1a7e-4dc7-949a-ab7b66dbded1
+
+	column laboratorio_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 8b9ceffa-5362-4cc6-a8ae-f269fdf71406
+		summarizeBy: none
+		sourceColumn: laboratorio_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sala_id
+		dataType: int64
+		formatString: 0
+		lineageTag: ed1dc94b-f6bc-4dec-a6d1-be17615622f7
+		summarizeBy: none
+		sourceColumn: sala_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column categoria
+		dataType: string
+		lineageTag: 71e5e544-68f6-41af-b649-9a2a3ce6128c
+		summarizeBy: none
+		sourceColumn: categoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column quantidade_maquinas
+		dataType: int64
+		formatString: 0
+		lineageTag: 6f4c9a04-339b-4c62-9be8-5cd9eafec575
+		summarizeBy: none
+		sourceColumn: quantidade_maquinas
+
+		annotation SummarizationSetBy = Automatic
+
+	column software_instalado
+		dataType: string
+		lineageTag: 303b22f4-4077-4e7f-a068-ebbf7f905c69
+		summarizeBy: none
+		sourceColumn: software_instalado
+
+		annotation SummarizationSetBy = Automatic
+
+	column normas_uso
+		dataType: string
+		lineageTag: 15b43d5b-6280-4dff-aa1f-5a89e361146d
+		summarizeBy: none
+		sourceColumn: normas_uso
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 5e590443-b727-4d79-aeb6-6099b15a5f72
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition laboratorios = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT laboratorio_id, sala_id, categoria, quantidade_maquinas, software_instalado, normas_uso, criado_em FROM laboratorios")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

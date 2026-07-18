@@ -1,0 +1,99 @@
+table avaliacoes
+	lineageTag: 1cef33f1-3694-4d13-9498-b67e9b75b772
+
+	column avaliacao_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b12fa980-aa2a-49dd-925f-0979e8d2bbde
+		summarizeBy: none
+		sourceColumn: avaliacao_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column turma_disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 98110314-11f4-4eca-92b2-f8ed971a6765
+		summarizeBy: none
+		sourceColumn: turma_disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo
+		dataType: string
+		lineageTag: 45fd1707-409d-4d57-bafe-cdbfd22eade2
+		summarizeBy: none
+		sourceColumn: tipo
+
+		annotation SummarizationSetBy = Automatic
+
+	column titulo
+		dataType: string
+		lineageTag: ddbc69e2-3fcd-4da0-b1cb-4d66d2fb6216
+		summarizeBy: none
+		sourceColumn: titulo
+
+		annotation SummarizationSetBy = Automatic
+
+	column peso
+		dataType: decimal
+		formatString: 0.00
+		lineageTag: 8c81aa49-d417-4be5-92e8-a8fb52acffaa
+		summarizeBy: none
+		sourceColumn: peso
+
+		annotation SummarizationSetBy = Automatic
+
+	column nota_maxima
+		dataType: decimal
+		formatString: 0.00
+		lineageTag: 05959e4d-87c5-4a1f-b05e-d23dc0e002aa
+		summarizeBy: none
+		sourceColumn: nota_maxima
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_prevista
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: b3a29976-8bec-45fb-8728-6215d8cfc22f
+		summarizeBy: none
+		sourceColumn: data_prevista
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_aplicacao
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: c6e7ea55-a51a-428e-b25f-d7aac7f3043e
+		summarizeBy: none
+		sourceColumn: data_aplicacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 898686ab-f691-495a-8f00-cc96843c3208
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 5467dd15-f3f7-4b80-8f90-1694a7fa110c
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition avaliacoes = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT avaliacao_id, turma_disciplina_id, tipo, titulo, peso, nota_maxima, data_prevista, data_aplicacao, status, criado_em FROM avaliacoes")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

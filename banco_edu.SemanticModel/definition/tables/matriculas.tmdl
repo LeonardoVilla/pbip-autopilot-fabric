@@ -1,0 +1,74 @@
+table matriculas
+	lineageTag: 01a530a5-f3b7-4db3-bb80-406cf54fe236
+
+	column matricula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 2e9955cf-0556-4c45-a259-bd67fdfc4387
+		summarizeBy: none
+		sourceColumn: matricula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column aluno_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 61840efc-9edc-4acd-b543-d4dba159a252
+		summarizeBy: none
+		sourceColumn: aluno_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column turma_disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: f4a9d899-ea30-49f0-803d-0f0d823e5a52
+		summarizeBy: none
+		sourceColumn: turma_disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_matricula
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: df41f7a0-c92c-4ebc-9378-273de7dc66f1
+		summarizeBy: none
+		sourceColumn: data_matricula
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 9b6f420d-f247-4a50-8fba-1eab0ff83acb
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column faltas
+		dataType: int64
+		formatString: 0
+		lineageTag: a0be2752-e54f-4061-84aa-8d50beb43c4e
+		summarizeBy: none
+		sourceColumn: faltas
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 2c37011f-58e7-4397-8767-481f2ce55e51
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition matriculas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT matricula_id, aluno_id, turma_disciplina_id, data_matricula, status, faltas, criado_em FROM matriculas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

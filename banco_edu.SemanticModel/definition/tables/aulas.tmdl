@@ -1,0 +1,81 @@
+table aulas
+	lineageTag: 5f14b6f7-2dfb-4f97-8212-a546417f1042
+
+	column aula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 7b244ae2-5cd0-4b77-998f-a4f436472651
+		summarizeBy: none
+		sourceColumn: aula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column turma_disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3c3da7bc-5bff-4376-a75f-264d294a72b5
+		summarizeBy: none
+		sourceColumn: turma_disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column sala_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 9442394a-6f11-473c-8dfc-b11a522f3756
+		summarizeBy: none
+		sourceColumn: sala_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_aula
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 16a2f9c9-bceb-43de-b3a9-d70592d7b40f
+		summarizeBy: none
+		sourceColumn: data_aula
+
+		annotation SummarizationSetBy = Automatic
+
+	column horario_inicio
+		dataType: string
+		lineageTag: 7335cbf2-8d0c-43de-927b-f6014247956c
+		summarizeBy: none
+		sourceColumn: horario_inicio
+
+		annotation SummarizationSetBy = Automatic
+
+	column horario_fim
+		dataType: string
+		lineageTag: 4a48d3ad-d502-4d46-92ff-69046e82785c
+		summarizeBy: none
+		sourceColumn: horario_fim
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 2b652653-08a5-4bd4-8a29-5a8ab67d3ede
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 941d3773-a806-4798-a088-3785eda92120
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition aulas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT aula_id, turma_disciplina_id, sala_id, data_aula, horario_inicio, horario_fim, status, criado_em FROM aulas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

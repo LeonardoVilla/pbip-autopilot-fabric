@@ -1,0 +1,55 @@
+table departamentos
+	lineageTag: 84acdba4-bb23-43d5-86c3-70a735effd45
+
+	column departamento_id
+		dataType: int64
+		formatString: 0
+		lineageTag: afe71d02-fbde-4b00-8bd3-e3f3989b35ef
+		summarizeBy: none
+		sourceColumn: departamento_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: 5113dbc4-99fc-4dab-a487-31b7cd470e55
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column sigla
+		dataType: string
+		lineageTag: 7310cb06-7437-4327-adf5-29229a457571
+		summarizeBy: none
+		sourceColumn: sigla
+
+		annotation SummarizationSetBy = Automatic
+
+	column ativo
+		dataType: int64
+		formatString: 0
+		lineageTag: c5b33cc5-4a0d-4383-8277-85946f85bde5
+		summarizeBy: none
+		sourceColumn: ativo
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 2c494785-6868-4ebf-9b5c-695d797ef385
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition departamentos = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT departamento_id, nome, sigla, ativo, criado_em FROM departamentos")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

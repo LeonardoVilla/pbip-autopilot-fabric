@@ -1,0 +1,90 @@
+table disciplinas
+	lineageTag: 90c8ee87-d808-4472-967f-eccacebfa4e9
+
+	column disciplina_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 530ccdb5-c1c7-43d8-9d96-b9df29d9e3fd
+		summarizeBy: none
+		sourceColumn: disciplina_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column departamento_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 87f72f6a-272b-4468-ba8e-9f1c522ff35c
+		summarizeBy: none
+		sourceColumn: departamento_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column codigo
+		dataType: string
+		lineageTag: 8123af56-5e98-4ce6-bdca-44b915abf393
+		summarizeBy: none
+		sourceColumn: codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: d92073ea-f825-4d22-9725-f19ebaddff21
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column creditos
+		dataType: int64
+		formatString: 0
+		lineageTag: 6887566b-890f-4a00-a0e9-255d402761bb
+		summarizeBy: none
+		sourceColumn: creditos
+
+		annotation SummarizationSetBy = Automatic
+
+	column carga_horaria
+		dataType: int64
+		formatString: 0
+		lineageTag: 766b8f56-20f8-4227-a275-e78a4b638a38
+		summarizeBy: none
+		sourceColumn: carga_horaria
+
+		annotation SummarizationSetBy = Automatic
+
+	column ementa
+		dataType: string
+		lineageTag: 2bc000b0-6e7a-4a7b-9b8d-09a5db3c1c56
+		summarizeBy: none
+		sourceColumn: ementa
+
+		annotation SummarizationSetBy = Automatic
+
+	column ativo
+		dataType: int64
+		formatString: 0
+		lineageTag: c410842d-87ae-43bd-b8bc-8cc7196c70f6
+		summarizeBy: none
+		sourceColumn: ativo
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: c0958e6c-4f0e-4dde-9a26-6e67799d16a9
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition disciplinas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT disciplina_id, departamento_id, codigo, nome, creditos, carga_horaria, ementa, ativo, criado_em FROM disciplinas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

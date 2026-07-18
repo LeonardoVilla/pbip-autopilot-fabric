@@ -1,0 +1,73 @@
+table notas
+	lineageTag: 73ca60cd-7951-4081-9029-852987b88367
+
+	column nota_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 80bd5854-f19b-4140-a8c1-36756ca7c9f6
+		summarizeBy: none
+		sourceColumn: nota_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column avaliacao_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 44a3ffaf-e406-4942-b47d-f35dc8ddbda0
+		summarizeBy: none
+		sourceColumn: avaliacao_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column matricula_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 2860a87a-fb88-4246-9306-f403d3c59545
+		summarizeBy: none
+		sourceColumn: matricula_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nota
+		dataType: decimal
+		formatString: 0.00
+		lineageTag: 2f211b9e-2e63-4d46-a7cd-fc193656e5b0
+		summarizeBy: none
+		sourceColumn: nota
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 1b34392d-1c1d-4d5b-92f2-e5262ed7cd62
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	column atualizado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: fee071b7-d977-40c3-9095-dc49aaa94bf1
+		summarizeBy: none
+		sourceColumn: atualizado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Faixa Nota' = SWITCH ( TRUE (), [nota] < 2, "0-2", [nota] < 4, "2-4", [nota] < 6, "4-6", [nota] < 8, "6-8", "8-10" )
+		dataType: string
+		lineageTag: 276ca07d-8bec-4192-9a6d-431d61478b73
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition notas = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT nota_id, avaliacao_id, matricula_id, nota, criado_em, atualizado_em FROM notas")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

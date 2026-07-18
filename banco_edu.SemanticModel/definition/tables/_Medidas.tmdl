@@ -1,0 +1,144 @@
+table _Medidas
+	lineageTag: 660cee9e-0fb6-4cbd-bde7-9728b2b3df8e
+
+	measure 'Total Alunos' = DISTINCTCOUNT ( alunos[aluno_id] )
+		lineageTag: 5f367d90-d53c-4175-b140-becb48f01237
+
+	measure 'Alunos Ativos' = CALCULATE ( [Total Alunos], alunos[status] = "ativo" )
+		formatString: 0
+		lineageTag: 8608af70-7c67-4a79-8530-33ba317213b2
+
+	measure 'Alunos Evadidos' = CALCULATE ( [Total Alunos], alunos[status] = "evadido" )
+		formatString: 0
+		lineageTag: 697967c2-2181-4e01-be2b-5f7b392ffdd0
+
+	measure 'Total Matrículas' = COUNTROWS ( matriculas )
+		formatString: #,0
+		lineageTag: dbe5e018-90fc-4d03-9841-7e7c80c78d4d
+
+	measure 'Total Turmas' = DISTINCTCOUNT ( turmas[turma_id] )
+		formatString: #,0
+		lineageTag: cfb025fc-ba6f-4694-af08-652ee292b6a3
+
+	measure 'Total Professores' = DISTINCTCOUNT ( professores[professor_id] )
+		formatString: #,0
+		lineageTag: 2aee7c12-930d-4dd0-b958-ad636c2f6767
+
+	measure 'Total Disciplinas' = DISTINCTCOUNT ( disciplinas[disciplina_id] )
+		formatString: #,0
+		lineageTag: ee668fcb-4a53-44ca-bcf1-6d84152ca608
+
+	measure 'Total Cursos' = DISTINCTCOUNT ( cursos[curso_id] )
+		formatString: #,0
+		lineageTag: 8bdc5d51-ab71-4d4f-aca7-0135c88f3b04
+
+	measure 'Matrículas Avaliadas' = COUNTROWS ( resumo_matriculas )
+		formatString: #,0
+		lineageTag: 69eff8fc-db01-4158-b055-147ed6216d40
+
+	measure 'Aprovados' = CALCULATE ( [Matrículas Avaliadas], resumo_matriculas[status_final] = "aprovado" )
+		formatString: #,0
+		lineageTag: 3a6d1c89-c4a3-4897-9a62-7b1670e32c66
+
+	measure 'Reprovados' = CALCULATE ( [Matrículas Avaliadas], resumo_matriculas[status_final] = "reprovado" )
+		formatString: #,0
+		lineageTag: 13ec4063-028b-4c02-8e21-0463f2c07b56
+
+	measure 'Recuperação' = CALCULATE ( [Matrículas Avaliadas], resumo_matriculas[status_final] = "recuperacao" )
+		formatString: #,0
+		lineageTag: 3c74302a-3005-468e-906c-ef440844df16
+
+	measure 'Taxa de Aprovação' = DIVIDE ( [Aprovados], [Matrículas Avaliadas] )
+		formatString: 0.0%
+		lineageTag: 809dbfed-539b-4a04-9556-6e5d23210c7b
+
+	measure 'Taxa de Reprovação' = DIVIDE ( [Reprovados], [Matrículas Avaliadas] )
+		formatString: 0.0%
+		lineageTag: a5bbb75b-7138-4e52-97f3-735449ce6379
+
+	measure 'Média Global' = AVERAGE ( resumo_matriculas[media_ponderada] )
+		formatString: 0.00
+		lineageTag: 59e06ea3-8200-4cc2-9c9c-2fcc5d8de18e
+
+	measure 'Nota Média' = AVERAGE ( notas[nota] )
+		formatString: 0.00
+		lineageTag: 8635e600-5c71-48e3-8230-d1963bf479dd
+
+	measure 'Média Ponderada' = DIVIDE ( SUMX ( notas, notas[nota] * RELATED ( avaliacoes[peso] ) ), SUMX ( notas, RELATED ( avaliacoes[peso] ) ) )
+		formatString: 0.00
+		lineageTag: bf9faf31-2b73-477b-a476-7d84efc39b0f
+
+	measure 'Presenças' = CALCULATE ( COUNTROWS ( frequencias ), frequencias[presente] = 1 )
+		formatString: #,0
+		lineageTag: d3f748ce-02b6-4d8e-a620-efda71cf8461
+
+	measure 'Frequência Média %' = DIVIDE ( [Presenças], COUNTROWS ( frequencias ) )
+		formatString: 0.0%
+		lineageTag: 0399f0b7-65da-4ba5-b9f6-f8a700454b31
+
+	measure 'Total Faltas' = SUM ( matriculas[faltas] )
+		formatString: #,0
+		lineageTag: 07789c71-b92b-4b5c-9cf8-2325b2f2c9eb
+
+	measure 'Faltas Média por Matrícula' = DIVIDE ( [Total Faltas], [Total Matrículas] )
+		formatString: 0.00
+		lineageTag: bb1430e4-04ad-4c55-9dab-b34715657725
+
+	measure 'Receita Prevista' = SUM ( mensalidades[valor] )
+		formatString: \R$\ #,0.00
+		lineageTag: fe16ac9d-6c55-413d-b8cb-8967ba56d438
+
+	measure 'Receita Recebida' = CALCULATE ( SUM ( mensalidades[valor_pago] ), mensalidades[status] = "pago" )
+		formatString: \R$\ #,0.00
+		lineageTag: c10ce5af-6339-4144-8d46-d4de36012621
+
+	measure 'Taxa de Recebimento' = DIVIDE ( [Receita Recebida], [Receita Prevista] )
+		formatString: 0.0%
+		lineageTag: 44d1b747-ca64-4989-bbfd-e2a7f5652993
+
+	measure 'Mensalidades Vencidas' = CALCULATE ( COUNTROWS ( mensalidades ), mensalidades[data_vencimento] <= TODAY () )
+		formatString: #,0
+		lineageTag: 52734858-a27d-4a48-a7d3-d9309390fe80
+
+	measure 'Mensalidades em Atraso' = CALCULATE ( COUNTROWS ( mensalidades ), mensalidades[status] = "atrasado" )
+		formatString: #,0
+		lineageTag: 0636e0c5-7b50-4c6c-bc7c-3a23c17d0ef7
+
+	measure 'Inadimplência %' = DIVIDE ( [Mensalidades em Atraso], [Mensalidades Vencidas] )
+		formatString: 0.0%
+		lineageTag: 35a83c57-b359-479e-83b3-b1374761057a
+
+	measure 'Valor em Atraso' = CALCULATE ( SUM ( mensalidades[valor] ), mensalidades[status] = "atrasado" )
+		formatString: \R$\ #,0.00
+		lineageTag: 06b251bd-aabf-49d6-9ba6-6d12d3dc5f45
+
+	measure 'Ticket Médio' = DIVIDE ( [Receita Prevista], DISTINCTCOUNT ( mensalidades[aluno_id] ) )
+		formatString: \R$\ #,0.00
+		lineageTag: cd2b6558-934c-4947-86c5-d88adff934d9
+
+	measure 'Receita Recebida YTD' = TOTALYTD ( [Receita Recebida], dim_calendario[data] )
+		formatString: \R$\ #,0.00
+		lineageTag: bfd4f853-8b51-4e77-aeb6-1dfa0a7385c6
+
+	measure 'Receita Mês Anterior' = CALCULATE ( [Receita Recebida], DATEADD ( dim_calendario[data], -1, MONTH ) )
+		formatString: \R$\ #,0.00
+		lineageTag: 136a8c4a-c085-4b9f-b815-40890688dec0
+
+	measure 'Receita MoM %' = DIVIDE ( [Receita Recebida] - [Receita Mês Anterior], [Receita Mês Anterior] )
+		formatString: 0.0%
+		lineageTag: d40e37ab-db99-4a98-8d94-a08b95115398
+
+	column Value
+		dataType: int64
+		isHidden
+		lineageTag: 1b6854bf-68c2-40ae-b687-defe932a7745
+		summarizeBy: none
+		sourceColumn: Value
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Medidas = calculated
+		mode: import
+		source = ROW ( "Value", 1 )
+
+	annotation PBI_ResultType = Table

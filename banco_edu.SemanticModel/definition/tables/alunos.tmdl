@@ -1,0 +1,96 @@
+table alunos
+	lineageTag: 5545ecaa-e4f0-47e5-b6b4-e7115bcb946f
+
+	column aluno_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 14d0410d-930f-4ba9-bfdd-b14ed533581b
+		summarizeBy: none
+		sourceColumn: aluno_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column turma_principal_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 81e175fb-17a1-4ae7-8a7d-7726dce61e1f
+		summarizeBy: none
+		sourceColumn: turma_principal_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column matricula
+		dataType: string
+		lineageTag: 6824c02b-c4b8-49a8-9a16-f33fdcf942bb
+		summarizeBy: none
+		sourceColumn: matricula
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: 159717d9-8646-4ea2-9567-9ae98f3c16d3
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column email
+		dataType: string
+		lineageTag: 6790e3b8-f775-45f0-ac55-0ee3c1b52087
+		summarizeBy: none
+		sourceColumn: email
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_nascimento
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 89c8e4d7-698e-4e76-9fa7-01619133e71a
+		summarizeBy: none
+		sourceColumn: data_nascimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_ingresso
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: 5b44a0a5-53e4-4d4a-b219-270b33b6b126
+		summarizeBy: none
+		sourceColumn: data_ingresso
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: b130564a-dda5-481e-b5fb-f85ba2898adc
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: 4a788ddb-1171-4bc7-9fc4-bc55ab6a9fcf
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Faixa Etária' = VAR i = DATEDIFF ( [data_nascimento], TODAY (), YEAR ) RETURN SWITCH ( TRUE (), i < 20, "até 19", i < 23, "20-22", i < 26, "23-25", "26+" )
+		dataType: string
+		lineageTag: d618f36e-6b8c-4514-b1cb-87b7ea330c4c
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition alunos = m
+		mode: import
+		source =
+				let
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT aluno_id, turma_principal_id, matricula, nome, email, data_nascimento, data_ingresso, status, criado_em FROM alunos")
+				in
+				    Fonte
+
+	annotation PBI_ResultType = Table

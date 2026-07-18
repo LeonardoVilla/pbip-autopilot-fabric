@@ -1,0 +1,39 @@
+model Model
+	culture: pt-BR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: pt-BR
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_ProTooling = ["DevMode"]
+
+annotation PBI_QueryOrder = ["alunos","aulas","avaliacoes","blocos","cursos","departamentos","dim_calendario","disciplinas","equipamentos_laboratorio","frequencias","laboratorios","matriculas","matriz_curricular","mensalidades","notas","prerequisitos_disciplinas","professores","resumo_matriculas","salas","turmas","turmas_disciplinas"]
+
+ref table alunos
+ref table aulas
+ref table avaliacoes
+ref table blocos
+ref table cursos
+ref table departamentos
+ref table dim_calendario
+ref table disciplinas
+ref table equipamentos_laboratorio
+ref table frequencias
+ref table laboratorios
+ref table matriculas
+ref table matriz_curricular
+ref table mensalidades
+ref table notas
+ref table prerequisitos_disciplinas
+ref table professores
+ref table resumo_matriculas
+ref table salas
+ref table turmas
+ref table turmas_disciplinas
+ref table _Medidas
+
+ref cultureInfo pt-BR
+

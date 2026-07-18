@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "banco_edu"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "f574d4e2-dfcf-4338-85f7-e4af7979735d"
+  }
+}
