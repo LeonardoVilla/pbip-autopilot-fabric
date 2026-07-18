@@ -71,8 +71,14 @@ desta skill — sempre preferir copiar formato delas a fixar de memória:
     tables/
       <NomeTabela>.tmdl   # colunas, medidas, hierarquias, partição com o M
     cultures/  roles/     # (quando houver) — 1 arquivo por cultura/role
+    perspectives/         # (quando houver) — 1 arquivo por perspective
   .pbi/                   # NÃO versionar (localSettings.json, cache.abf)
 ```
+
+> **Roles (RLS/OLS), perspectives e calculation groups**: nenhum projeto
+> gerado por esta skill até agora precisou desses recursos — ver
+> [references/roles-perspectives-calculation-groups.md](references/roles-perspectives-calculation-groups.md)
+> pro esqueleto de partida (marcado 📄 doc oficial, nunca testado por nós).
 
 [sample]: https://github.com/microsoft/Analysis-Services/tree/master/pbidevmode/fabricps-pbip/SamplePBIP
 [tmdl-ov]: https://learn.microsoft.com/analysis-services/tmdl/tmdl-overview

@@ -12,6 +12,7 @@ using Microsoft.AnalysisServices.Tabular;
 //   etl-tom add-table --name <nome> --m <arquivo.m> --columns "Col:tipo,..." [--refresh] [--port N]
 //   etl-tom remove-table --name <nome> [--port N]
 //   etl-tom refresh-table --name <nome> [--port N]
+//   etl-tom remove-measure --table <host> --name <nome> [--port N]
 //
 // Tipos de coluna: string | int64 | double | decimal | datetime | boolean
 
@@ -80,6 +81,8 @@ try
             return CmdListRelationships(model);
         case "add-measure":
             return CmdAddMeasure(model, opts);
+        case "remove-measure":
+            return CmdRemoveMeasure(model, opts);
         case "add-measure-table":
             return CmdAddMeasureTable(model, opts);
         case "list-measures":
@@ -418,6 +421,32 @@ static int CmdAddMeasure(Model model, Dictionary<string, string> opts)
     return 0;
 }
 
+static int CmdRemoveMeasure(Model model, Dictionary<string, string> opts)
+{
+    // --table <tabela host> --name <nome medida>
+    if (!opts.TryGetValue("table", out var tableName) || !opts.TryGetValue("name", out var measureName))
+    {
+        Console.Error.WriteLine("[ERRO] remove-measure exige --table e --name");
+        return 1;
+    }
+    var table = model.Tables.Find(tableName);
+    if (table == null)
+    {
+        Console.Error.WriteLine($"[ERRO] Tabela '{tableName}' nao encontrada.");
+        return 1;
+    }
+    var measure = table.Measures.Find(measureName);
+    if (measure == null)
+    {
+        Console.Error.WriteLine($"[ERRO] Medida '{measureName}' nao encontrada em '{tableName}'.");
+        return 1;
+    }
+    table.Measures.Remove(measure);
+    model.SaveChanges();
+    Console.WriteLine($"[OK] Medida '{measureName}' removida de '{tableName}'.");
+    return 0;
+}
+
 static int CmdAddCalcColumn(Model model, Dictionary<string, string> opts)
 {
     // --table <tabela> --name <nome coluna> --dax <arquivo.dax>
@@ -545,6 +574,7 @@ static void PrintUsage()
           etl-tom list-relationships [--port N]
           etl-tom add-measure-table --name <nome> [--port N]
           etl-tom add-measure --table <host> --name <nome> --dax <arq.dax> [--format "0.0%"] [--port N]
+          etl-tom remove-measure --table <host> --name <nome> [--port N]
           etl-tom add-calc-column --table <tabela> --name <nome> --dax <arq.dax> [--port N]
           etl-tom update-m --name <tabela> --m <arq.m> [--refresh] [--port N]
           etl-tom list-measures [--port N]

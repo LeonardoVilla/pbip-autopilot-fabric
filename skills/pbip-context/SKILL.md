@@ -18,6 +18,24 @@ MeuPainel.SemanticModel/       # modelo (TMDL)  → skill gerar-modelo-tmdl
 MeuPainel.Report/              # relatório (PBIR) → skill gerar-visuais-pbir
 ```
 
+### Report "thick" vs "thin"
+
+- **Thick report** (cenário padrão desta skill até agora): `.Report/` +
+  `.SemanticModel/` juntos na mesma pasta, `definition.pbir` aponta o modelo
+  por **`byPath`** (relativo, pasta local). Todo projeto gerado por
+  `gerar-modelo-tmdl`/`gerar-visuais-pbir` até hoje (`banco_edu`, SIPLAN) é
+  thick.
+- **Thin report**: só `.Report/` — sem `.SemanticModel/` próprio — apontando
+  via `definition.pbir` `byConnection` pra um modelo **já publicado** (no
+  serviço/Fabric). Vários relatórios podem ser thin do mesmo modelo
+  compartilhado (cenário de BI gerenciado: um modelo central, múltiplos
+  relatórios de equipes diferentes reusando-o).
+- Isso importa pra Fase 2 do roadmap (deploy via Fabric REST API): a API só
+  aceita `byConnection`, então um projeto thick gerado localmente precisa
+  virar thin (ou o `.pbir` trocar pra `byConnection`) na hora do deploy
+  programático — ver detalhe em `gerar-modelo-tmdl/SKILL.md` (seção
+  "`byPath` vs `byConnection`").
+
 ## Regras que NÃO podem ser violadas
 
 1. **Desktop fechado durante a geração.** O Desktop mantém o projeto em
@@ -34,6 +52,17 @@ MeuPainel.Report/              # relatório (PBIR) → skill gerar-visuais-pbir
 5. **TMDL usa indentação TAB significativa**; PBIR usa JSON UTF-8 comum.
    Nada de UTF-16LE, SecurityBindings ou compress_type — esses problemas
    eram do `.pbix` e não existem aqui.
+6. **UTF-8 SEM BOM em todo arquivo gerado** (TMDL e JSON) — um BOM prefixado
+   quebra o parser de alguns caminhos (ex.: leitura via ferramentas de
+   terceiros que não esperam o marcador). Ao escrever com Python, usar
+   `encoding="utf-8"` (nunca `"utf-8-sig"`, que adiciona BOM) e
+   `newline="\n"` explícito — caso contrário o modo texto padrão do Windows
+   converte `\n` para `\r\n` na gravação. Os geradores de referência
+   (`examples/banco_edu/gerar_*.py`) já seguem esse padrão; replicar em
+   scripts novos. O `.gitattributes` do repo normaliza quebra de linha no
+   histórico (`* text=auto eol=lf`) — isso não impede o Desktop de regravar
+   em CRLF ao salvar, só evita que o diff do git fique ruidoso por causa
+   disso.
 
 ## Diferenças-chave vs. o mundo .pbix (projeto anterior)
 
@@ -45,6 +74,17 @@ MeuPainel.Report/              # relatório (PBIR) → skill gerar-visuais-pbir
 | Erro de visual | .pbix pode corromper | erro isolado no visual |
 | Undo | fechar sem salvar | `git restore` |
 | Validação | `validate_pbix()` caseiro | abrir no Desktop (parser oficial) |
+
+## Renomear tabela/coluna/medida com segurança
+
+Um rename se espalha por dezenas de arquivos (TMDL, JSON de visual, bookmark,
+tema de relatório) em formatos diferentes — esquecer um lugar não quebra a
+abertura na hora, quebra silenciosamente um visual/bookmark/drillthrough
+muito depois. Antes de renomear qualquer objeto do modelo, seguir o checklist
+completo em [references/rename-cascade.md](references/rename-cascade.md)
+(19 pontos pra rename de tabela, incluindo os mais fáceis de esquecer:
+`sortDefinition`, SparklineData, os dois `Entity` de cada bookmark, e os
+dois locais de `DAXQueries/`).
 
 ## Requisito de versão
 

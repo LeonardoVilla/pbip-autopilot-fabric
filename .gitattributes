@@ -1,0 +1,14 @@
+# Normaliza quebra de linha nos arquivos de texto do repositório.
+# O Power BI Desktop grava TMDL/PBIR em CRLF ao salvar; nossos scripts
+# geradores (examples/*.py) gravam LF explícito. `text=auto` deixa o git
+# normalizar para LF no histórico independente de quem tocou o arquivo por
+# último, sem forçar um estilo específico no working tree.
+* text=auto eol=lf
+
+# Binários — nunca aplicar conversão de fim de linha nem diff textual.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pbix binary
+*.pyc binary
+*.pdb binary
