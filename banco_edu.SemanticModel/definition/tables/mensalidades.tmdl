@@ -28,11 +28,13 @@ table mensalidades
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column valor
-		dataType: decimal
+		dataType: double
 		formatString: \R$\ #,0.00
 		lineageTag: c7511f52-66c8-4459-a7fe-19df8415e1be
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: valor
 
 		annotation SummarizationSetBy = Automatic
@@ -46,6 +48,8 @@ table mensalidades
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column data_pagamento
 		dataType: dateTime
 		formatString: dd/MM/yyyy
@@ -55,11 +59,13 @@ table mensalidades
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column valor_pago
-		dataType: decimal
+		dataType: double
 		formatString: \R$\ #,0.00
 		lineageTag: 7ba9802b-1b25-4bad-8b37-9297e2ace6eb
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: valor_pago
 
 		annotation SummarizationSetBy = Automatic
@@ -98,3 +104,4 @@ table mensalidades
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

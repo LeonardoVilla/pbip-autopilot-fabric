@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "dc0babc6672b4fc1a85c",
   "position": {
     "x": 950,
     "y": 320,
     "z": 0,
-    "width": 320,
     "height": 300,
+    "width": 320,
     "tabOrder": 4
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "alunos.Faixa Etária",
-              "nativeQueryRef": "Faixa Etária"
+              "nativeQueryRef": "Faixa Etária",
+              "active": true
             }
           ]
         },

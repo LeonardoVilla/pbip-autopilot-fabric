@@ -37,6 +37,8 @@ table matriculas
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column status
 		dataType: string
 		lineageTag: 9b6f420d-f247-4a50-8fba-1eab0ff83acb
@@ -72,3 +74,4 @@ table matriculas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

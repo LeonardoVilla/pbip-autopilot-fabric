@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "6f9c4197e34e4845a016",
   "position": {
     "x": 640,
     "y": 10,
     "z": 0,
-    "width": 630,
     "height": 300,
+    "width": 630,
     "tabOrder": 1
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "notas.Faixa Nota",
-              "nativeQueryRef": "Faixa Nota"
+              "nativeQueryRef": "Faixa Nota",
+              "active": true
             }
           ]
         },

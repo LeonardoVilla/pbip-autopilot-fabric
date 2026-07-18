@@ -29,10 +29,10 @@ table notas
 		annotation SummarizationSetBy = Automatic
 
 	column nota
-		dataType: decimal
+		dataType: double
 		formatString: 0.00
 		lineageTag: 2f211b9e-2e63-4d46-a7cd-fc193656e5b0
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: nota
 
 		annotation SummarizationSetBy = Automatic
@@ -71,3 +71,4 @@ table notas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

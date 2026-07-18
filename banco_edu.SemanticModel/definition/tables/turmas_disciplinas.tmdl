@@ -80,3 +80,4 @@ table turmas_disciplinas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

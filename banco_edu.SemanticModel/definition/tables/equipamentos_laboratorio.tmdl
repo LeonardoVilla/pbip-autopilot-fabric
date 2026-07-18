@@ -61,3 +61,4 @@ table equipamentos_laboratorio
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

@@ -52,6 +52,8 @@ table professores
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column ativo
 		dataType: int64
 		formatString: 0
@@ -79,3 +81,4 @@ table professores
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

@@ -237,6 +237,19 @@ def check_semantic_model(model: dict) -> list:
         n_cols_no_folder = 0
         n_measures_no_folder = 0
 
+        seen_col_names = set()
+        for c in t["columns"]:
+            if c["name"] in seen_col_names:
+                findings.append(Finding("PBIP_DUPLICATE_COLUMN_NAME", 3, "Table", f"{tname}.{c['name']}",
+                                         "Nome de coluna duplicado na mesma tabela — Desktop rejeita ou o comportamento fica indefinido."))
+            seen_col_names.add(c["name"])
+        seen_measure_names = set()
+        for m in t["measures"]:
+            if m["name"] in seen_measure_names:
+                findings.append(Finding("PBIP_DUPLICATE_COLUMN_NAME", 3, "Table", f"{tname}.{m['name']}",
+                                         "Nome de medida duplicado na mesma tabela — Desktop rejeita ou o comportamento fica indefinido."))
+            seen_measure_names.add(m["name"])
+
         # --- NO_CAMELCASE / UPPERCASE_FIRST_LETTER para tabelas ---
         if CAMEL_CASE_RE.search(tname) and " " not in tname:
             findings.append(Finding("NO_CAMELCASE_MEASURES_TABLES", 2, "Table", tname,

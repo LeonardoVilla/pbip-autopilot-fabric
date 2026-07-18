@@ -5,9 +5,8 @@
 - [x] Esqueleto das 3 skills (`gerar-modelo-tmdl`, `gerar-visuais-pbir`, `pbip-context`)
 - [x] Converter um template real para `.pbip` e usar como projeto de referência
       — `banco_edu.pbip`/`.SemanticModel`/`.Report` (21 tabelas, 32 medidas, 28
-      relacionamentos, 3 páginas de relatório). **Ainda não commitado** —
-      existe só no working tree local; decidir se entra no repo como fixture
-      permanente ou fica como projeto de teste descartável.
+      relacionamentos, 3 páginas de relatório). Commitado como fixture
+      permanente do repo.
 
 ## Fase 1 — Paridade com o PowerBI-Autopilot
 Validar em produção (mesmo critério do projeto anterior: VILLA MT).
@@ -21,19 +20,39 @@ Validar em produção (mesmo critério do projeto anterior: VILLA MT).
 - [x] add-calc-column — `banco_edu` (`'Faixa Etária'`, `'Faixa Nota'` via SWITCH)
 - [x] add-relationship — `banco_edu`, 28 relacionamentos incl. regra 1:1
       bidirecional e validador de ciclo (union-find) antes de abrir no Desktop
-- [ ] update-m (troca de fonte: Excel local → SharePoint) — não testado ainda
+- [x] update-m — validado no `banco_edu` (tabela `blocos`): editar a expressão
+      M da partição direto no `.tmdl` (query SQL alterada + coluna nova
+      `nome_maiusculo`) e o Desktop carregou corretamente no Atualizar.
+      Não foi testado o caso específico Excel local → SharePoint (fora do
+      escopo do `banco_edu`, que é 100% MySQL), mas o mecanismo central —
+      trocar a fonte M de uma tabela existente por texto — está confirmado.
 - [x] export-m — trivial pelo formato: o M já é texto legível/editável direto
       no `.tmdl`, não exige implementação própria
-- [ ] Conectores ainda não validados por nós (vêm só da doc oficial): Oracle,
-      PostgreSQL/Supabase, MongoDB
+- [x] PostgreSQL — validado (container Docker de teste, `PostgreSQL.Database`
+      com navegação `Fonte{[Schema="public",Item="<tabela>"]}[Data]`,
+      credencial de banco pedida na primeira carga). Ver achado sobre
+      `double`/`summarizeBy: sum` abaixo.
+- [x] Oracle — validado (container Docker `gvenzl/oracle-free`, `Oracle.Database`
+      com `[Query="SELECT ..."]`). Também confirmou o fix de `Currency.Type`
+      (ver achado #5 no `gerar-modelo-tmdl/SKILL.md`): coluna `saldo`
+      permaneceu `decimal` após Atualizar, diferente de `produtos_pg_teste`
+      (sem o fix, virou `double` sozinha).
+- [x] MongoDB — validado (conta Atlas real do usuário, federated database +
+      Atlas SQL Interface). Exige um passo extra que não estava documentado:
+      gerar o schema SQL primeiro (`sqlGenerateSchema` via mongosh, contra o
+      database `admin`) — sem isso a coleção carrega "sem colunas com tipos
+      suportados". Função M real: `MongoDBAtlasODBC.Contents(uri, database,
+      [])` + navegação `{[Name=...,Kind="Database"]}[Data]` →
+      `{[Name=...,Kind="Table"]}[Data]`. Array aninhado do MongoDB
+      (ex.: lista de subdocumentos) chega como **string JSON serializada**,
+      não expande em linhas/colunas.
 
 ### Relatório (gerar-visuais-pbir) — v0.5.0, "esqueleto em validação"
 Infraestrutura JSON (estrutura de pastas, `themeCollection`, drillthrough,
 tooltip de página, convenção de nomes de pasta/id, limites do serviço) está
 validada em campo (VILLA MT). Catálogo de visuais herdado do `gerar-pbix`,
 portado pra PBIR em [references/catalogo-visuais.md](../skills/gerar-visuais-pbir/references/catalogo-visuais.md)
-— 7 tipos nativos com template real (extraído do `banco_edu`, identidade
-VILLA), 7 ainda faltam (sem exemplo real gerado no Desktop ainda):
+— **14 de 14 tipos nativos com template real**, catálogo completo:
 | Visual (gerar-pbix) | PBIR | Status |
 |---|---|---|
 | card_vc | visual.json tipo card | ✅ template real |
@@ -43,13 +62,20 @@ VILLA), 7 ainda faltam (sem exemplo real gerado no Desktop ainda):
 | table_vc | visual.json tipo tableEx | ✅ template real |
 | shape_vc | visual.json tipo shape | ✅ template real |
 | textbox_vc | visual.json tipo textbox | ✅ template real |
-| matrix_vc | visual.json tipo pivotTable | pendente — sem exemplo real |
-| gauge_vc | visual.json tipo gauge | pendente — sem exemplo real |
-| slicer_vc | visual.json tipo slicer | pendente — sem exemplo real |
-| combo_vc | visual.json tipo comboChart | pendente — sem exemplo real |
-| area_vc | visual.json tipo areaChart/stackedAreaChart | pendente — sem exemplo real |
-| nav_button_vc | visual.json tipo actionButton | pendente — sem exemplo real |
-| image_vc | visual.json tipo image + StaticResources | pendente — sem exemplo real |
+| gauge_vc | visual.json tipo gauge | ✅ template real (escala default 0-100) |
+| slicer_vc | visual.json tipo slicer | ✅ template real (modo lista; dropdown ainda não) |
+| matrix_vc | visual.json tipo pivotTable | ✅ template real (Total automático) |
+| area_vc | visual.json tipo areaChart | ✅ template real |
+| combo_vc | visual.json tipo lineClusteredColumnComboChart | ✅ template real (nome nativo != "comboChart", achado corrigido) |
+| image_vc | visual.json tipo image + StaticResources | ✅ template real |
+| nav_button_vc | visual.json tipo actionButton | ✅ template real (ação em `visualContainerObjects.visualLink`, não em `objects` — achado corrigido) |
+
+- [x] `grid()` de layout — portado direto do `gerar-pbix` (matemática pura, sem precisar de teste no Desktop)
+- [x] Filtros de página/visual com valor fixo — testado no Desktop: `filterConfig.filters[]` no PBIR usa a mesma estrutura `From/Where/Condition/In/Values` do `equals_filter()` legado, só sem serialização em string
+
+- [x] Preset `kpi_card_villa` completo (barra de acento + label + número + ícone) — testado no Desktop, composição de 4 visuais já validados
+
+**Fase 1 (modelo + relatório) está completa.**
 | grid() / filtros página+visual | layout + filters.json | pendente |
 | kpi_card_villa + design system | preset PBIR (barra de acento + ícone) | pendente |
 

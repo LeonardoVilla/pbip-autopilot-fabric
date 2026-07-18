@@ -1,0 +1,57 @@
+table produtos_pg_teste
+	lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456789
+
+	column produto_id
+		dataType: int64
+		formatString: 0
+		lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456790
+		summarizeBy: none
+		sourceColumn: produto_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456791
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column categoria
+		dataType: string
+		lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456792
+		summarizeBy: none
+		sourceColumn: categoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column preco
+		dataType: double
+		formatString: \R$\ #,0.00
+		lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456793
+		summarizeBy: sum
+		sourceColumn: preco
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy hh:mm:ss
+		lineageTag: b1c2d3e4-f5a6-4789-9bcd-ef0123456794
+		summarizeBy: none
+		sourceColumn: criado_em
+
+		annotation SummarizationSetBy = Automatic
+
+	partition produtos_pg_teste = m
+		mode: import
+		source =
+				let
+				    Fonte = PostgreSQL.Database("localhost", "teste_pbip"),
+				    dados = Fonte{[Schema="public",Item="produtos"]}[Data]
+				in
+				    dados
+
+	annotation PBI_ResultType = Table
+

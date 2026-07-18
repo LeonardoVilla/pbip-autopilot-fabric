@@ -10,7 +10,7 @@ annotation __PBI_TimeIntelligenceEnabled = 0
 
 annotation PBI_ProTooling = ["DevMode"]
 
-annotation PBI_QueryOrder = ["alunos","aulas","avaliacoes","blocos","cursos","departamentos","dim_calendario","disciplinas","equipamentos_laboratorio","frequencias","laboratorios","matriculas","matriz_curricular","mensalidades","notas","prerequisitos_disciplinas","professores","resumo_matriculas","salas","turmas","turmas_disciplinas"]
+annotation PBI_QueryOrder = ["alunos","aulas","avaliacoes","blocos","cursos","departamentos","dim_calendario","disciplinas","equipamentos_laboratorio","frequencias","laboratorios","matriculas","matriz_curricular","mensalidades","notas","prerequisitos_disciplinas","professores","resumo_matriculas","salas","turmas","turmas_disciplinas","produtos_pg_teste","fornecedores_ora_teste","alunos_mongo_teste"]
 
 ref table alunos
 ref table aulas
@@ -34,6 +34,9 @@ ref table salas
 ref table turmas
 ref table turmas_disciplinas
 ref table _Medidas
+ref table produtos_pg_teste
+ref table fornecedores_ora_teste
+ref table alunos_mongo_teste
 
 ref cultureInfo pt-BR
 

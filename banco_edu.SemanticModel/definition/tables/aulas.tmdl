@@ -37,21 +37,29 @@ table aulas
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column horario_inicio
-		dataType: string
+		dataType: dateTime
+		formatString: Long Time
 		lineageTag: 7335cbf2-8d0c-43de-927b-f6014247956c
 		summarizeBy: none
 		sourceColumn: horario_inicio
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Time
+
 	column horario_fim
-		dataType: string
+		dataType: dateTime
+		formatString: Long Time
 		lineageTag: 4a48d3ad-d502-4d46-92ff-69046e82785c
 		summarizeBy: none
 		sourceColumn: horario_fim
 
 		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Time
 
 	column status
 		dataType: string
@@ -79,3 +87,4 @@ table aulas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

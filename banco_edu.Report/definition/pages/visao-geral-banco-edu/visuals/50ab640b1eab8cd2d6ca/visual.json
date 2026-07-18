@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "50ab640b1eab8cd2d6ca",
   "position": {
     "x": 10,
     "y": 140,
     "z": 0,
-    "width": 610,
     "height": 560,
+    "width": 610,
     "tabOrder": 24
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "cursos.nome",
-              "nativeQueryRef": "nome"
+              "nativeQueryRef": "nome",
+              "active": true
             }
           ]
         },

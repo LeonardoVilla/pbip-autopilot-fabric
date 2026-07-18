@@ -19,6 +19,8 @@ table dim_calendario
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column ano
 		dataType: int64
 		formatString: 0
@@ -131,3 +133,4 @@ table dim_calendario
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "slicer0001test000001",
+  "position": {
+    "x": 340.30988793782143,
+    "y": 20.58325935107791,
+    "z": 0,
+    "height": 592.79786931104377,
+    "width": 299.1433692356656,
+    "tabOrder": 1
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "cursos"
+                    }
+                  },
+                  "Property": "nome"
+                }
+              },
+              "queryRef": "cursos.nome",
+              "nativeQueryRef": "nome",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "general": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Curso (teste slicer)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "8aca7d4f7eb3bf3f8ba9",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "cursos"
+              }
+            },
+            "Property": "nome"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

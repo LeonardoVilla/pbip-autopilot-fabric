@@ -52,6 +52,8 @@ table alunos
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column data_ingresso
 		dataType: dateTime
 		formatString: dd/MM/yyyy
@@ -60,6 +62,8 @@ table alunos
 		sourceColumn: data_ingresso
 
 		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
 
 	column status
 		dataType: string
@@ -94,3 +98,4 @@ table alunos
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

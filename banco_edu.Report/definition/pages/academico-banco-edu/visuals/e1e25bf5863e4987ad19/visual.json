@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "e1e25bf5863e4987ad19",
   "position": {
     "x": 10,
     "y": 10,
     "z": 0,
-    "width": 620,
     "height": 300,
+    "width": 620,
     "tabOrder": 0
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "turmas.Período",
-              "nativeQueryRef": "Período"
+              "nativeQueryRef": "Período",
+              "active": true
             }
           ]
         },

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "combotestecatal0001",
+  "position": {
+    "x": 440,
+    "y": 300,
+    "z": 0,
+    "height": 260,
+    "width": 400,
+    "tabOrder": 3
+  },
+  "visual": {
+    "visualType": "lineClusteredColumnComboChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "cursos"
+                    }
+                  },
+                  "Property": "nome"
+                }
+              },
+              "queryRef": "cursos.nome",
+              "nativeQueryRef": "nome",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Total Matrículas"
+                }
+              },
+              "queryRef": "_Medidas.Total Matrículas",
+              "nativeQueryRef": "Total Matrículas"
+            }
+          ]
+        },
+        "Y2": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Taxa de Aprovação"
+                }
+              },
+              "queryRef": "_Medidas.Taxa de Aprovação",
+              "nativeQueryRef": "Taxa de Aprovação"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Matriculas x Aprovacao (teste combo)'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#15314F'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

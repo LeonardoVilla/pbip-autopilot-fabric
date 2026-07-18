@@ -1,0 +1,165 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "matrixtestecat00001",
+  "position": {
+    "x": 20,
+    "y": 300,
+    "z": 0,
+    "height": 260,
+    "width": 400,
+    "tabOrder": 2
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "departamentos"
+                    }
+                  },
+                  "Property": "nome"
+                }
+              },
+              "queryRef": "departamentos.nome",
+              "nativeQueryRef": "nome",
+              "active": true
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Total Cursos"
+                }
+              },
+              "queryRef": "_Medidas.Total Cursos",
+              "nativeQueryRef": "Total Cursos"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Total Professores"
+                }
+              },
+              "queryRef": "_Medidas.Total Professores",
+              "nativeQueryRef": "Total Professores"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Departamentos (teste matrix)'"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#15314F'"
+                    }
+                  }
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E5E9F0'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

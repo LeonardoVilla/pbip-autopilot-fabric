@@ -69,7 +69,7 @@ table turmas
 
 		annotation SummarizationSetBy = Automatic
 
-	column 'Período' = [ano_letivo] & "/" & [semestre_letivo]
+	column Período = [ano_letivo] & "/" & [semestre_letivo]
 		dataType: string
 		lineageTag: 43db7da1-09f2-4a2f-808a-ccbfc621ee94
 		summarizeBy: none
@@ -85,3 +85,4 @@ table turmas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

@@ -171,11 +171,51 @@ O Power BI tem conector PostgreSQL nativo; usar a conexão direta do Supabase
 PostgreSQL.Database("db.xxxx.supabase.co:5432", "postgres", [Query="SELECT ..."])
 ```
 
-**MongoDB** — documentado, ainda não validado neste projeto. Usar o conector
+**MongoDB** — ✅ validado (jul/2026, cluster Atlas real do usuário). Conector
 certificado **MongoDB Atlas SQL** (já embutido no Power BI Desktop; o antigo
-"BI Connector" tem EOL em set/2026 — não usar). A consulta usa o dialeto SQL
-da Atlas sobre as coleções; para modelagem, o caminho robusto é achatar os
-documentos numa view/consulta SQL Atlas antes de trazer para o modelo.
+"BI Connector" tem EOL em set/2026 — não usar).
+
+Pré-requisitos, nesta ordem:
+1. **Federated database** configurado no Atlas (Data Federation → Create New
+   Federated Database), mapeando a(s) collection(s) reais pra dentro de um
+   "Virtual Database"/"Virtual Collection".
+2. **Driver ODBC MongoDB Atlas SQL** instalado na máquina
+   (mongodb.com/try/download/odbc-driver).
+3. **Gerar o schema SQL da collection ANTES de conectar pelo Power BI** —
+   sem isso, o Desktop carrega a tabela como "nenhuma coluna com tipos de
+   dados com suporte" e desabilita o load. Rodar via `mongosh` conectado ao
+   federated database, **contra o database `admin`** (rejeita se rodado
+   contra o database virtual, mesmo especificando o namespace certo no
+   parâmetro):
+   ```javascript
+   db.getSiblingDB("admin").runCommand({
+       sqlGenerateSchema: 1,
+       sampleNamespaces: ["<VirtualDatabase>.<VirtualCollection>"],
+       sampleSize: 1000,
+       setSchemas: true
+   })
+   ```
+
+Só depois disso, conectar no Desktop via **Obter Dados → Banco de dados →
+MongoDB Atlas SQL**, colando a URI do federated database (sem usuário/senha
+embutidos — a doc do conector rejeita URI com credencial) + nome do
+database virtual. A função M real gravada pelo Desktop:
+```
+let
+    Fonte = MongoDBAtlasODBC.Contents("<URI>", "<VirtualDatabase>", []),
+    Database = Fonte{[Name="<VirtualDatabase>",Kind="Database"]}[Data],
+    Tabela = Database{[Name="<VirtualCollection>",Kind="Table"]}[Data]
+in
+    Tabela
+```
+
+**Achado sobre campos aninhados**: um array de subdocumentos do MongoDB
+(ex.: lista de endereços dentro do documento) chega no Power BI como uma
+**string JSON serializada** numa única coluna — não expande automaticamente
+em linhas/colunas relacionadas. Para achatar de verdade, seria preciso um
+passo de `Json.Document` + `Table.ExpandListColumn`/`ExpandRecordColumn` na
+consulta M depois de trazer a coluna (mesmo padrão já usado pra respostas
+de API REST), não testado ainda.
 
 **Firebase (Firestore/Realtime DB)** — SEM conector nativo no Power BI.
 Ponderar com o usuário as duas pontes viáveis:

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "name": "kpiiicontestcat0001",
+  "position": {
+    "x": 888,
+    "y": 54,
+    "z": 15,
+    "width": 56,
+    "height": 50,
+    "tabOrder": 11
+  },
+  "visual": {
+    "visualType": "image",
+    "objects": {
+      "image": [
+        {
+          "properties": {
+            "sourceFile": {
+              "image": {
+                "name": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'business.png'"
+                    }
+                  }
+                },
+                "url": {
+                  "expr": {
+                    "ResourcePackageItem": {
+                      "PackageName": "RegisteredResources",
+                      "PackageType": 1,
+                      "ItemName": "business.png"
+                    }
+                  }
+                },
+                "scaling": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'Normal'"
+                    }
+                  }
+                }
+              }
+            },
+            "fit": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Fit'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -11,10 +11,10 @@ table resumo_matriculas
 		annotation SummarizationSetBy = Automatic
 
 	column media_ponderada
-		dataType: decimal
+		dataType: double
 		formatString: 0.00
 		lineageTag: c75715f1-1607-4a4d-a001-6f556661acc4
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: media_ponderada
 
 		annotation SummarizationSetBy = Automatic
@@ -54,3 +54,4 @@ table resumo_matriculas
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

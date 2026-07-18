@@ -36,7 +36,7 @@ table avaliacoes
 		annotation SummarizationSetBy = Automatic
 
 	column peso
-		dataType: decimal
+		dataType: double
 		formatString: 0.00
 		lineageTag: 8c81aa49-d417-4be5-92e8-a8fb52acffaa
 		summarizeBy: none
@@ -45,7 +45,7 @@ table avaliacoes
 		annotation SummarizationSetBy = Automatic
 
 	column nota_maxima
-		dataType: decimal
+		dataType: double
 		formatString: 0.00
 		lineageTag: 05959e4d-87c5-4a1f-b05e-d23dc0e002aa
 		summarizeBy: none
@@ -62,6 +62,8 @@ table avaliacoes
 
 		annotation SummarizationSetBy = Automatic
 
+		annotation UnderlyingDateTimeDataType = Date
+
 	column data_aplicacao
 		dataType: dateTime
 		formatString: dd/MM/yyyy
@@ -70,6 +72,8 @@ table avaliacoes
 		sourceColumn: data_aplicacao
 
 		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
 
 	column status
 		dataType: string
@@ -97,3 +101,4 @@ table avaliacoes
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

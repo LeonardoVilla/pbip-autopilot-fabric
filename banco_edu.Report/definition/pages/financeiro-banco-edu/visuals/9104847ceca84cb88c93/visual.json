@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "9104847ceca84cb88c93",
   "position": {
     "x": 870,
     "y": 320,
     "z": 0,
-    "width": 400,
     "height": 300,
+    "width": 400,
     "tabOrder": 4
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "alunos.status",
-              "nativeQueryRef": "status"
+              "nativeQueryRef": "status",
+              "active": true
             }
           ]
         },

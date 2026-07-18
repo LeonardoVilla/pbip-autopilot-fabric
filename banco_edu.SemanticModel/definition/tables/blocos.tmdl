@@ -35,12 +35,21 @@ table blocos
 
 		annotation SummarizationSetBy = Automatic
 
+	column nome_maiusculo
+		dataType: string
+		lineageTag: a1b2c3d4-e5f6-4789-9abc-def012345678
+		summarizeBy: none
+		sourceColumn: nome_maiusculo
+
+		annotation SummarizationSetBy = Automatic
+
 	partition blocos = m
 		mode: import
 		source =
 				let
-				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT bloco_id, nome, localizacao, criado_em FROM blocos")
+				    Fonte = Odbc.Query("Driver={MySQL ODBC 9.7 Unicode Driver};Server=127.0.0.1;Port=3306;Database=banco_edu;", "SELECT bloco_id, nome, localizacao, criado_em, UPPER(nome) AS nome_maiusculo FROM blocos")
 				in
 				    Fonte
 
 	annotation PBI_ResultType = Table
+

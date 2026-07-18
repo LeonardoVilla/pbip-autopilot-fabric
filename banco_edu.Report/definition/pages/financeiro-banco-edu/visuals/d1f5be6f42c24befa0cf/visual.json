@@ -1,12 +1,12 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
   "name": "d1f5be6f42c24befa0cf",
   "position": {
     "x": 440,
     "y": 320,
     "z": 0,
-    "width": 420,
     "height": 300,
+    "width": 420,
     "tabOrder": 3
   },
   "visual": {
@@ -27,7 +27,8 @@
                 }
               },
               "queryRef": "dim_calendario.ano_mes",
-              "nativeQueryRef": "ano_mes"
+              "nativeQueryRef": "ano_mes",
+              "active": true
             }
           ]
         },

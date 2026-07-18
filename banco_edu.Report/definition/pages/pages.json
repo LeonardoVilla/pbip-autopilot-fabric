@@ -3,7 +3,8 @@
   "pageOrder": [
     "visao-geral-banco-edu",
     "academico-banco-edu",
-    "financeiro-banco-edu"
+    "financeiro-banco-edu",
+    "teste-catalogo-banco"
   ],
-  "activePageName": "visao-geral-banco-edu"
+  "activePageName": "teste-catalogo-banco"
 }

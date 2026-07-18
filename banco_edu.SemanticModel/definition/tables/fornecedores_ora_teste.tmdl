@@ -1,0 +1,57 @@
+table fornecedores_ora_teste
+	lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567890
+
+	column fornecedor_id
+		dataType: double
+		formatString: 0
+		lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567891
+		summarizeBy: sum
+		sourceColumn: FORNECEDOR_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567892
+		summarizeBy: none
+		sourceColumn: NOME
+
+		annotation SummarizationSetBy = Automatic
+
+	column cidade
+		dataType: string
+		lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567893
+		summarizeBy: none
+		sourceColumn: CIDADE
+
+		annotation SummarizationSetBy = Automatic
+
+	column saldo
+		dataType: decimal
+		formatString: \R$\ #,0.00
+		lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567894
+		summarizeBy: none
+		sourceColumn: SALDO
+
+		annotation SummarizationSetBy = Automatic
+
+	column criado_em
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: c2d3e4f5-a6b7-4890-9cde-f01234567895
+		summarizeBy: none
+		sourceColumn: CRIADO_EM
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fornecedores_ora_teste = m
+		mode: import
+		source =
+				let
+				    Fonte = Oracle.Database("localhost:1521/FREEPDB1", [Query="SELECT FORNECEDOR_ID, NOME, CIDADE, SALDO, CRIADO_EM FROM SYSTEM.FORNECEDORES"]),
+				    Tipado = Table.TransformColumnTypes(Fonte, {{"SALDO", Currency.Type}})
+				in
+				    Tipado
+
+	annotation PBI_ResultType = Table
+

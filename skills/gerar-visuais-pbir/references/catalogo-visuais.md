@@ -19,6 +19,110 @@ gerar, em vez de aplicar um padrão fixo por conta própria.
 > isso não copiamos os arquivos deles. Os templates abaixo vêm só de
 > exemplos que nós mesmos geramos no Desktop.
 
+## grid() — posicionamento em grade
+
+Herdado direto do `gerar-pbix` (`references/template-script.md`) — é
+matemática pura de layout, não depende do formato do arquivo (`.pbix` ou
+PBIR usam o mesmo conceito de `x`/`y`/`w`/`h` no `position` do visual), por
+isso não precisou de teste no Desktop pra portar.
+
+```python
+def grid(cols, rows, area_x=0, area_y=0, area_w=1280, area_h=720, gap=10):
+    """
+    Gera uma lista de (x, y, w, h) para uma grade cols×rows dentro de area_*.
+    Uso:
+        cells = grid(4, 1, area_x=10, area_y=116, area_w=1260, area_h=90)
+        # cells[0] = (x, y, w, h) do primeiro visual da grade
+    """
+    cell_w = (area_w - gap * (cols - 1)) / cols
+    cell_h = (area_h - gap * (rows - 1)) / rows
+    cells = []
+    for r in range(rows):
+        for c in range(cols):
+            cx = area_x + c * (cell_w + gap)
+            cy = area_y + r * (cell_h + gap)
+            cells.append((round(cx), round(cy), round(cell_w), round(cell_h)))
+    return cells
+```
+
+No PBIR, o resultado de cada célula vai direto no `position` do
+`visual.json`:
+```json
+"position": { "x": <cx>, "y": <cy>, "z": 0, "width": <cw>, "height": <ch>, "tabOrder": <N> }
+```
+(no `.pbix` legado era `{"x":cx,"y":cy,"z":z,"width":cw,"height":ch,"tabOrder":tab}`
+dentro de `layouts[0].position` — mesmos campos, só o invólucro muda.)
+
+## Filtros de página/visual com valor fixo (sem slicer)
+
+Equivalente ao `equals_filter()` + `apply_page_filters()`/
+`apply_visual_filters()` do `gerar-pbix`. Testado no Desktop (jul/2026):
+aplicar um filtro de página (painel Filtros → campo → fixar valor) grava
+em `page.json` um `filterConfig.filters[]` com **a mesma estrutura interna**
+do formato legado `.pbix` (`From`/`Where`/`Condition`/`In`/`Values`) —
+**a única mudança real é o invólucro**: no PBIR é objeto JSON nativo dentro
+de `filterConfig`, não mais uma string serializada dentro de `"filters"`.
+
+```json
+{
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "<slug-20-chars>",
+        "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<Coluna>" } },
+        "type": "Categorical",
+        "filter": {
+          "Version": 2,
+          "From": [ { "Name": "<alias-curto>", "Entity": "<Tabela>", "Type": 0 } ],
+          "Where": [
+            { "Condition": { "In": {
+              "Expressions": [ { "Column": { "Expression": { "SourceRef": { "Source": "<alias-curto>" } }, "Property": "<Coluna>" } } ],
+              "Values": [ [ { "Literal": { "Value": "'<valor>'" } } ] ]
+            } } }
+          ]
+        },
+        "howCreated": "User"
+      }
+    ]
+  }
+}
+```
+
+Onde aplicar:
+- **Página inteira**: `filterConfig` é propriedade de `page.json` (nível
+  raiz, irmã de `displayName`/`height`/`width`).
+- **Um visual específico**: mesmo `filterConfig`, mas dentro do
+  `visual.json` daquele visual (irmão de `visual`, mesmo padrão já visto
+  no `filterConfig` do `slicer_vc`).
+
+`Values` aceita mais de um literal por lista pra `IN (a, b, c)` (múltiplos
+valores selecionados); pra valor numérico, omitir as aspas simples do
+`Literal.Value` (mesma regra do `equals_filter` legado — `is_string`).
+
+## kpi_card_villa — composto de KPI (barra + label + número + ícone)
+
+Não é um tipo de visual novo — é a **composição** de 4 visuais já
+validados acima (`shape_vc` + `textbox_vc` + `card_vc` + `image_vc`
+opcional), portada 1:1 do preset `kpi_card_villa()` do `gerar-pbix`
+(mesmos offsets relativos). Testado no Desktop (jul/2026): renderizou
+corretamente.
+
+Receita (todos compartilham o mesmo `x`,`y` de origem do card, `w`/`h` do
+card definem a caixa toda):
+
+| Peça | Posição relativa | z | Conteúdo |
+|---|---|---|---|
+| `shape_vc` (barra de acento) | `x, y, 5, h` | `z+5` | `fillColor` = cor do acento |
+| `textbox_vc` (label) | `x+12, y+10, w-16, 30` | `z+10` | texto = nome do KPI, `9pt` bold, cor = acento |
+| `card_vc` (número) | `x, y, w, h` | `z` (base, atrás dos outros) | medida DAX, `labels.fontSize: 26D`, cor `#15314F` |
+| `image_vc` (ícone, opcional) | `x+8, y+34, 56, 50` | `z+15` | ícone do KPI |
+
+O card fica **atrás** (menor z) e ocupa a área toda como "moldura" (fundo
+branco + borda + número grande); a barra de acento e o label ficam por
+cima, sobrepostos só na fatia onde não colidem visualmente com o número.
+`w`/`h` recomendados: ~200-240 × ~90-100 (mesma proporção do preset
+`.pbix` original).
+
 ## card_vc — cartão de KPI (`visualType: card`)
 
 Uso: destacar 1 medida (ex.: "Inadimplência %").
@@ -211,19 +315,259 @@ Nota de unidade: `textbox` usa string com unidade explícita (`"9pt"`), ao
 contrário dos outros visuais que usam sufixo `D` (`"9D"`) — ver
 [design-system-villa.md](../../gerar-pbix/references/design-system-villa.md).
 
-## Ainda pendente — sem exemplo real nosso ainda
+## gauge_vc — medidor (`visualType: gauge`)
 
-Estes tipos estão no mapa de portabilidade do `docs/roadmap.md` mas **ainda
-não foram gerados no Desktop por nós** — não inventar o JSON a partir de
-documentação de terceiros; gerar um exemplo mínimo no Desktop primeiro,
-salvar, e só então documentar o padrão aqui (mesma disciplina usada pros
-tipos acima):
+Uso: mostrar uma medida percentual/numérica contra uma escala 0-100 (ou
+min/max implícito). Testado no Desktop (jul/2026): renderizou a escala
+0,0%-100,0% e o valor central corretamente só com a role `Y`.
 
-- `matrix_vc` (`visualType: pivotTable` no PBIR — nome diferente do rótulo
-  "Matriz" da UI)
-- `gauge_vc` (`visualType: gauge`)
-- `slicer_vc` (`visualType: slicer` — variantes dropdown/lista/avançado)
-- `combo_vc` (`visualType: comboChart`)
-- `area_vc` (`visualType: areaChart` ou `stackedAreaChart`)
-- `nav_button_vc` (botão de navegação — `visualType: actionButton` no PBIR)
-- `image_vc` (`visualType: image`, + `StaticResources/` pro arquivo)
+```json
+{
+  "visual": {
+    "visualType": "gauge",
+    "query": { "queryState": { "Y": { "projections": [
+      { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<Medida>" } },
+        "queryRef": "<TabelaMedidas>.<Medida>", "nativeQueryRef": "<Medida>" }
+    ] } } },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}}, "fontColor": {"solid":{"color":{"expr":{"Literal":{"Value":"'#15314F'"}}}}}, "fontSize": {"expr":{"Literal":{"Value":"12D"}}} } }],
+      "background": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#FFFFFF'"}}}}} } }],
+      "border": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#E5E9F0'"}}}}}, "radius": {"expr":{"Literal":{"Value":"8D"}}} } }]
+    }
+  }
+}
+```
+Não testamos ainda `MinValue`/`MaxValue`/`TargetValue` (roles opcionais pra
+customizar a escala) — o exemplo acima usa só o default 0-100 do Desktop.
+
+## slicer_vc — filtro em visual (`visualType: slicer`)
+
+Uso: filtro interativo por coluna. Testado no Desktop (jul/2026): renderizou
+como lista (formato padrão do Desktop quando não se especifica `objects`).
+**Descoberta ao interagir no Desktop**: ao mover/redimensionar o slicer, o
+Desktop regravou o arquivo e revelou dois detalhes que nosso JSON inicial
+não tinha:
+
+- `objects.general: [{ "properties": {} }]` — presente mesmo vazio.
+- **`filterConfig` é irmão de `visual`** (não fica dentro dele) — repete a
+  referência do campo com `type: "Categorical"` e um `name` (GUID/slug
+  próprio, diferente do `queryRef`). Sem isso o slicer ainda funciona, mas
+  o Desktop o adiciona sozinho ao salvar — incluir já formado evita um
+  round-trip de gravação.
+- `$schema` da versão `visualContainer` subiu de `2.3.0` pra `2.10.0` só
+  neste arquivo ao ser regravado — os outros visuais do projeto continuam
+  em `2.3.0` e abrem normalmente; não force o bump manualmente, deixe o
+  Desktop decidir quando regravar.
+
+```json
+{
+  "visual": {
+    "visualType": "slicer",
+    "query": { "queryState": { "Values": { "projections": [
+      { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<Coluna>" } },
+        "queryRef": "<Tabela>.<Coluna>", "nativeQueryRef": "<Coluna>" }
+    ] } } },
+    "objects": { "general": [{ "properties": {} }] },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}} } }]
+    }
+  },
+  "filterConfig": {
+    "filters": [
+      { "name": "<slug-ou-guid-proprio>",
+        "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<Coluna>" } },
+        "type": "Categorical" }
+    ]
+  }
+}
+```
+
+Ainda não testamos como forçar modo **dropdown** especificamente (o design
+system `gerar-pbix` usa dropdown, o teste acima renderizou como lista) —
+precisa gerar um dropdown no Desktop e comparar a propriedade exata que
+muda (provável candidato: mais alguma coisa dentro de `objects.general`
+ou um objeto novo tipo `objects.selection`/`data`, ainda não confirmado).
+
+## matrix_vc — matriz (`visualType: pivotTable`)
+
+Uso: agrupamento hierárquico com totais automáticos. Nome interno no PBIR é
+`pivotTable` — **diferente do rótulo "Matriz" da UI**, fácil de errar.
+Testado no Desktop (jul/2026): renderizou corretamente, incluindo a linha
+de **Total** no rodapé gerada automaticamente pelo Desktop (não precisa
+declarar no JSON).
+
+```json
+{
+  "visual": {
+    "visualType": "pivotTable",
+    "query": { "queryState": {
+      "Rows": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<TabelaDimensao>" } }, "Property": "<ColunaDimensao>" } }, "queryRef": "<TabelaDimensao>.<ColunaDimensao>", "nativeQueryRef": "<ColunaDimensao>" }] },
+      "Values": { "projections": [
+        { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<Medida1>" } }, "queryRef": "<TabelaMedidas>.<Medida1>", "nativeQueryRef": "<Medida1>" },
+        { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<Medida2>" } }, "queryRef": "<TabelaMedidas>.<Medida2>", "nativeQueryRef": "<Medida2>" }
+      ] }
+    } },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}}, "fontColor": {"solid":{"color":{"expr":{"Literal":{"Value":"'#15314F'"}}}}}, "fontSize": {"expr":{"Literal":{"Value":"12D"}}} } }],
+      "background": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#FFFFFF'"}}}}} } }],
+      "border": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#E5E9F0'"}}}}}, "radius": {"expr":{"Literal":{"Value":"8D"}}} } }]
+    }
+  }
+}
+```
+Não testamos ainda `Columns` (pivot de coluna, além do agrupamento de
+linha) — o exemplo acima só usa `Rows` + `Values`.
+
+## area_vc — área (`visualType: areaChart`)
+
+Uso: série temporal com preenchimento, mesma estrutura de query do
+`line_vc`. Testado no Desktop (jul/2026): renderizou corretamente com
+`categoryAxis`/`valueAxis` visíveis.
+
+```json
+{
+  "visual": {
+    "visualType": "areaChart",
+    "query": { "queryState": {
+      "Category": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<TabelaCalendario>" } }, "Property": "<ColunaEixoX>" } }, "queryRef": "<TabelaCalendario>.<ColunaEixoX>", "nativeQueryRef": "<ColunaEixoX>" }] },
+      "Y": { "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<Medida>" } }, "queryRef": "<TabelaMedidas>.<Medida>", "nativeQueryRef": "<Medida>" }] }
+    } },
+    "objects": {
+      "categoryAxis": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } } } }],
+      "valueAxis": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } } } }]
+    },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}}, "fontColor": {"solid":{"color":{"expr":{"Literal":{"Value":"'#15314F'"}}}}}, "fontSize": {"expr":{"Literal":{"Value":"12D"}}} } }],
+      "background": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#FFFFFF'"}}}}} } }],
+      "border": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#E5E9F0'"}}}}}, "radius": {"expr":{"Literal":{"Value":"8D"}}} } }]
+    }
+  }
+}
+```
+`stackedAreaChart` (área empilhada, múltiplas séries) ainda não testado —
+provável mesma estrutura de `Y` com múltiplas projeções, como no `line_vc`.
+
+## combo_vc — combo linha+coluna (`visualType: lineClusteredColumnComboChart`)
+
+Uso: duas medidas de escalas diferentes no mesmo gráfico (ex.: contagem em
+coluna + percentual em linha, eixo Y secundário). **`"comboChart"` NÃO é o
+nome nativo** — testado e confirmado que o Desktop recusa esse valor
+("Para ver este visual personalizado, adicione-o a este relatório
+primeiro"). O nome certo é `lineClusteredColumnComboChart` (Linha e coluna
+agrupada) — testado no Desktop (jul/2026), renderizou com eixo Y duplo e
+legenda no topo automaticamente, sem precisar declarar nada de eixo extra.
+
+```json
+{
+  "visual": {
+    "visualType": "lineClusteredColumnComboChart",
+    "query": { "queryState": {
+      "Category": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<Coluna>" } }, "queryRef": "<Tabela>.<Coluna>", "nativeQueryRef": "<Coluna>" }] },
+      "Y": { "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<MedidaColuna>" } }, "queryRef": "<TabelaMedidas>.<MedidaColuna>", "nativeQueryRef": "<MedidaColuna>" }] },
+      "Y2": { "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "<TabelaMedidas>" } }, "Property": "<MedidaLinha>" } }, "queryRef": "<TabelaMedidas>.<MedidaLinha>", "nativeQueryRef": "<MedidaLinha>" }] }
+    } },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}}, "fontColor": {"solid":{"color":{"expr":{"Literal":{"Value":"'#15314F'"}}}}}, "fontSize": {"expr":{"Literal":{"Value":"12D"}}} } }],
+      "background": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#FFFFFF'"}}}}} } }],
+      "border": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#E5E9F0'"}}}}}, "radius": {"expr":{"Literal":{"Value":"8D"}}} } }]
+    }
+  }
+}
+```
+`lineStackedColumnComboChart` (Linha e coluna empilhada) ainda não
+testado — mesma estrutura de roles, provável.
+
+## image_vc — imagem (`visualType: image`)
+
+Uso: ícone/logo a partir de um arquivo registrado em `StaticResources/`.
+Testado no Desktop (jul/2026): renderizou corretamente.
+
+Duas partes obrigatórias:
+
+1. **Arquivo físico** em `<Report>/StaticResources/RegisteredResources/<arquivo>`
+2. **Declaração em `report.json`** (`resourcePackages`, nível do relatório —
+   não do visual):
+   ```json
+   {
+     "name": "RegisteredResources",
+     "type": "RegisteredResources",
+     "items": [ { "name": "<arquivo>", "path": "<arquivo>", "type": "Image" } ]
+   }
+   ```
+
+```json
+{
+  "visual": {
+    "visualType": "image",
+    "objects": {
+      "image": [{ "properties": {
+        "sourceFile": { "image": {
+          "name": { "expr": { "Literal": { "Value": "'<arquivo>'" } } },
+          "url": { "expr": { "ResourcePackageItem": {
+            "PackageName": "RegisteredResources", "PackageType": 1, "ItemName": "<arquivo>"
+          } } },
+          "scaling": { "expr": { "Literal": { "Value": "'Normal'" } } }
+        } },
+        "fit": { "expr": { "Literal": { "Value": "'Fit'" } } }
+      } }]
+    },
+    "visualContainerObjects": {
+      "background": [{ "properties": { "show": { "expr": { "Literal": { "Value": "false" } } } } }]
+    }
+  }
+}
+```
+Estrutura idêntica à usada no `.pbix` legado (`gerar-pbix`/`image_vc()`) —
+só muda o invólucro (visual.json em vez de layout embutido no ZIP).
+
+## nav_button_vc — botão de navegação (`visualType: actionButton`)
+
+Uso: botão com ícone e/ou texto que executa uma ação (voltar, ir pra
+página, limpar filtros). **Primeira tentativa (chute) falhou** — havíamos
+colocado a ação em `objects.visualLink`, e o botão renderizou vazio, sem
+preenchimento/texto/ação. Corrigido gerando de verdade pela galeria
+**Inserir → Botões** do Desktop (`"howCreated": "InsertVisualButton"` no
+JSON resultante confirma a origem):
+
+```json
+{
+  "visual": {
+    "visualType": "actionButton",
+    "objects": {
+      "icon": [
+        { "properties": { "shapeType": { "expr": { "Literal": { "Value": "'back'" } } } }, "selector": { "id": "default" } }
+      ]
+    },
+    "visualContainerObjects": {
+      "visualLink": [
+        {
+          "properties": {
+            "show": { "expr": { "Literal": { "Value": "true" } } },
+            "type": { "expr": { "Literal": { "Value": "'Back'" } } }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "howCreated": "InsertVisualButton"
+}
+```
+
+**Achado principal**: a ação do botão (`visualLink`) fica em
+**`visual.visualContainerObjects.visualLink`** — não em `visual.objects`
+(nosso chute original). O ícone (`objects.icon[].properties.shapeType`) e o
+texto (`objects.text[].properties.text`) são independentes da ação.
+
+`visualLink.properties.type` confirmados no Desktop: `'Back'` (botão
+Voltar) e `'ClearAllSlicers'` (botão Limpar segmentações — nesse caso vem
+também `tooltipPlaceholderText`). **`'PageNavigation'` com
+`navigationSection: '<nome-da-página>'` ainda não confirmado** — é a
+inferência lógica pro botão "Ir para página" da mesma galeria, mas não foi
+testado; gerar um antes de confiar cegamente nessa forma.
+
+Texto com múltiplos estados (base + `selector: {"id": "default"}`) — o
+botão "Limpar segmentações" tem duas entradas em `objects.text[]`, uma sem
+`selector` (estado base) e outra com `selector.id: "default"` carregando o
+texto/alinhamento de fato. Replicar essa duplicação ao gerar botões com
+texto.

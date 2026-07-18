@@ -1,0 +1,57 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "b9cfd538cfb7c130c7a7",
+  "position": {
+    "x": 717.66964270758308,
+    "y": 90.5663411447428,
+    "z": 1,
+    "height": 39.794301412083954,
+    "width": 100.17186217524582,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "actionButton",
+    "objects": {
+      "icon": [
+        {
+          "properties": {
+            "shapeType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'back'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "visualLink": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "type": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Back'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "howCreated": "InsertVisualButton"
+}

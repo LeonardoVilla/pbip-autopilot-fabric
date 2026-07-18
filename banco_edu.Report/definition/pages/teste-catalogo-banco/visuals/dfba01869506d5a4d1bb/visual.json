@@ -1,0 +1,109 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "dfba01869506d5a4d1bb",
+  "position": {
+    "x": 935.85219182900892,
+    "y": 170.15494396891071,
+    "z": 2,
+    "height": 49.399822442586981,
+    "width": 200.34372435049164,
+    "tabOrder": 8
+  },
+  "visual": {
+    "visualType": "actionButton",
+    "objects": {
+      "icon": [
+        {
+          "properties": {
+            "shapeType": {
+              "expr": {
+                "Literal": {
+                  "Value": "'clearAllSlicers'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        },
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "text": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Limpar todas as segmentações'"
+                }
+              }
+            },
+            "horizontalAlignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'center'"
+                }
+              }
+            }
+          },
+          "selector": {
+            "id": "default"
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "visualLink": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "type": {
+              "expr": {
+                "Literal": {
+                  "Value": "'ClearAllSlicers'"
+                }
+              }
+            },
+            "tooltipPlaceholderText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Limpar todas as segmentações de dados nesta página'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "howCreated": "InsertVisualButton"
+}

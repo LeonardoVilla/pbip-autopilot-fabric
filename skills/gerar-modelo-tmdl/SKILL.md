@@ -17,9 +17,13 @@ sem Desktop aberto e sem TOM. Sucessora da skill `gerar-etl-tom` do
 > seção "Regras de TMDL validadas na prática"). **API REST com token também
 > validada** (jul/2026, projeto SIPLAN — geração de PBIP do zero aberta com
 > sucesso no Desktop; ver "✅ Regras validadas no Power BI Desktop" e "Padrão
-> validado: fonte = API REST com token"). Demais conectores (Oracle,
-> PostgreSQL, MongoDB) ainda vêm da documentação oficial (learn.microsoft.com);
-> marcar com ✅ conforme forem validados.
+> validado: fonte = API REST com token"). **Oracle e PostgreSQL também
+> validados** (jul/2026, containers Docker de teste — `Oracle.Database` e
+> `PostgreSQL.Database`; ver achado #5 "Colunas NUMERIC/DECIMAL viram double
+> sozinhas" na seção de regras práticas). **MongoDB também validado**
+> (jul/2026, cluster Atlas real — conector MongoDB Atlas SQL, exige gerar
+> schema via `sqlGenerateSchema` antes de conectar; ver
+> `references/descoberta-schema-mcp.md`).
 >
 > **Legenda de confiança:** trechos marcados **✅ validado** foram abertos com
 > sucesso no Desktop por nós; trechos marcados **📄 doc oficial** vêm da
@@ -422,6 +426,41 @@ existe de fato na tabela (cross-check simples via regex/parse dos `.tmdl`);
 (b) parênteses de cada expressão de medida balanceados. Isso troca 4-5
 ciclos de "gerar → abrir no Desktop → ler erro → corrigir" por um `assert`
 que falha em segundos, localmente.
+
+### 5. Colunas NUMERIC/DECIMAL do SQL viram `double` sozinhas ao atualizar
+
+Confirmado duas vezes (MySQL no `banco_edu` — `avaliacoes.peso`,
+`mensalidades.valor`, `notas.nota`, `resumo_matriculas.media_ponderada`; e
+PostgreSQL num teste isolado com `NUMERIC(10,2)`): mesmo declarando
+`dataType: decimal` no `.tmdl` à mão, ao clicar **Atualizar** no Desktop o
+Power Query re-infere o tipo da coluna a partir do driver/fonte e **regrava
+sozinho** `dataType: double` + `summarizeBy: sum` — sem aviso, sem erro,
+simplesmente "corrige" o TMDL na próxima gravação. Isso reintroduz
+exatamente o que a regra `META_AVOID_FLOAT` do `validar-pbip` tenta evitar
+(double pode gerar imprecisão; ex.: somas de dinheiro fechando com centavos
+errados).
+
+**Causa**: sem um passo explícito de conversão de tipo na consulta M, o
+Power Query mapeia `NUMERIC`/`DECIMAL` do SQL pra `type number` (= double no
+modelo), não pra "Fixed Decimal Number" (= decimal no modelo).
+
+**Correção confirmada** (testado com Oracle — coluna `saldo` permaneceu
+`decimal` após Atualizar com o fix, contra `double` sozinho sem ele em
+PostgreSQL/MySQL): adicionar `Table.TransformColumnTypes` explícito na
+consulta M forçando `Currency.Type` (o tipo M que corresponde a "Fixed
+Decimal Number"/`decimal` no TMDL) pra cada coluna monetária/decimal, em
+vez de confiar no `dataType: decimal` do `.tmdl` sozinho:
+
+```m
+let
+    Fonte = Odbc.Query("...", "SELECT ... FROM tabela"),
+    Tipado = Table.TransformColumnTypes(Fonte, {{"valor", Currency.Type}})
+in
+    Tipado
+```
+
+Sem esse passo, declarar `dataType: decimal` no `.tmdl` só "segura" até o
+próximo Atualizar — não é uma correção estável.
 
 ## Relação com as outras skills
 

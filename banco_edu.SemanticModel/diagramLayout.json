@@ -293,6 +293,45 @@
             "width": 234
           },
           "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 3392.4424919844346,
+            "y": 694.44897661904236
+          },
+          "nodeIndex": "produtos_pg_teste",
+          "nodeLineageTag": "b1c2d3e4-f5a6-4789-9bcd-ef0123456789",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 3626.4424919844346,
+            "y": 694.44897661904236
+          },
+          "nodeIndex": "fornecedores_ora_teste",
+          "nodeLineageTag": "c2d3e4f5-a6b7-4890-9cde-f01234567890",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 3860.4424919844346,
+            "y": 706.44897661904236
+          },
+          "nodeIndex": "alunos_mongo_teste",
+          "nodeLineageTag": "d3e4f5a6-b7c8-4901-9def-012345678901",
+          "size": {
+            "height": 176,
+            "width": 234
+          },
+          "zIndex": 0
         }
       ],
       "name": "Todas as tabelas",

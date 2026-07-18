@@ -1,0 +1,64 @@
+table alunos_mongo_teste
+	lineageTag: d3e4f5a6-b7c8-4901-9def-012345678901
+
+	column nome
+		dataType: string
+		lineageTag: d3e4f5a6-b7c8-4901-9def-012345678902
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column idade
+		dataType: int64
+		formatString: 0
+		lineageTag: d3e4f5a6-b7c8-4901-9def-012345678903
+		summarizeBy: none
+		sourceColumn: idade
+
+		annotation SummarizationSetBy = Automatic
+
+	column email
+		dataType: string
+		lineageTag: d3e4f5a6-b7c8-4901-9def-012345678904
+		summarizeBy: none
+		sourceColumn: email
+
+		annotation SummarizationSetBy = Automatic
+
+	column sexo
+		dataType: string
+		lineageTag: d3e4f5a6-b7c8-4901-9def-012345678905
+		summarizeBy: none
+		sourceColumn: sexo
+
+		annotation SummarizationSetBy = Automatic
+
+	column _id
+		dataType: string
+		lineageTag: e55c119a-b79b-40f8-bf72-569c765e06c4
+		summarizeBy: none
+		sourceColumn: _id
+
+		annotation SummarizationSetBy = Automatic
+
+	column enderecos
+		dataType: string
+		lineageTag: e66256a8-a8b0-473b-8baa-85c8306e51fc
+		summarizeBy: none
+		sourceColumn: enderecos
+
+		annotation SummarizationSetBy = Automatic
+
+	partition alunos_mongo_teste = m
+		mode: import
+		source =
+				let
+				    Fonte = MongoDBAtlasODBC.Contents("mongodb://<seu-federated-db>.a.query.mongodb.net/VirtualDatabase?ssl=true&authSource=admin", "VirtualDatabase", []),
+				    VirtualDatabase_Database = Fonte{[Name="VirtualDatabase",Kind="Database"]}[Data],
+				    VirtualCollection_Table = VirtualDatabase_Database{[Name="VirtualCollection",Kind="Table"]}[Data]
+				in
+				    VirtualCollection_Table
+
+	annotation PBI_ResultType = Table
+

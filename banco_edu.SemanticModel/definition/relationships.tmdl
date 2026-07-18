@@ -1,153 +1,124 @@
 relationship b25bf7a6-52be-4859-8a7b-1285341a1b73
-
 	fromColumn: cursos.departamento_id
 	toColumn: departamentos.departamento_id
 
 relationship 5be670c1-bfc3-482f-acac-acf0cb5e53bd
-
 	isActive: false
 	fromColumn: disciplinas.departamento_id
 	toColumn: departamentos.departamento_id
 
 relationship 0c03c910-7d49-4877-9dc2-7f51c346366b
-
 	isActive: false
 	fromColumn: professores.departamento_id
 	toColumn: departamentos.departamento_id
 
 relationship 4076cb5a-97be-4f73-8fa1-04aa4ba83847
-
 	fromColumn: turmas.curso_id
 	toColumn: cursos.curso_id
 
 relationship b3c23135-50b4-43c5-b63e-ecd65cc7e789
-
 	fromColumn: turmas_disciplinas.turma_id
 	toColumn: turmas.turma_id
 
 relationship 20a33b7b-b110-4d0b-a887-6f536b8ddbb4
-
 	fromColumn: turmas_disciplinas.disciplina_id
 	toColumn: disciplinas.disciplina_id
 
 relationship 49b7ec25-73c3-46b4-8677-907dd53b01a4
-
 	fromColumn: turmas_disciplinas.professor_id
 	toColumn: professores.professor_id
 
 relationship db3f6203-669a-4536-a535-a43a2c017678
-
 	fromColumn: matriculas.turma_disciplina_id
 	toColumn: turmas_disciplinas.turma_disciplina_id
 
 relationship e10c9f61-619f-4702-a9e6-a62ea48dc732
-
 	fromColumn: matriculas.aluno_id
 	toColumn: alunos.aluno_id
 
 relationship bdfb224d-ca53-4952-934b-97e9389f4281
-
 	fromColumn: notas.avaliacao_id
 	toColumn: avaliacoes.avaliacao_id
 
 relationship 6e1a95cb-018d-4dd2-9b9a-47060d21f851
-
 	fromColumn: notas.matricula_id
 	toColumn: matriculas.matricula_id
 
 relationship 4260378a-20bb-4569-805e-51dbcf2c708d
-
 	fromColumn: frequencias.aula_id
 	toColumn: aulas.aula_id
 
 relationship 28692540-3fd0-4b58-8512-e601731b9bcb
-
 	fromColumn: frequencias.matricula_id
 	toColumn: matriculas.matricula_id
 
 relationship 9827db12-ae7a-4716-a8ab-48dc8c83bb25
-
-	fromCardinality: one
-	toCardinality: one
 	crossFilteringBehavior: bothDirections
+	fromCardinality: one
 	fromColumn: resumo_matriculas.matricula_id
 	toColumn: matriculas.matricula_id
 
 relationship 5242da95-9dd4-45f8-b192-817632744dc0
-
 	fromColumn: aulas.sala_id
 	toColumn: salas.sala_id
 
 relationship bc8a8f44-50b6-4938-902a-f5016a71cc77
-
 	isActive: false
 	fromColumn: aulas.turma_disciplina_id
 	toColumn: turmas_disciplinas.turma_disciplina_id
 
 relationship 54fe5ffb-0307-4172-9b2d-02f108d70628
-
 	fromColumn: salas.bloco_id
 	toColumn: blocos.bloco_id
 
 relationship 357e4ef7-b777-453f-8a4e-5ecbcd6c9ca3
-
-	fromCardinality: one
-	toCardinality: one
 	crossFilteringBehavior: bothDirections
+	fromCardinality: one
 	fromColumn: laboratorios.sala_id
 	toColumn: salas.sala_id
 
 relationship 066e9bd4-b7ff-4bf5-9429-6f9ebbf6de6e
-
 	fromColumn: equipamentos_laboratorio.laboratorio_id
 	toColumn: laboratorios.laboratorio_id
 
 relationship 237180dc-7e7a-4b82-8855-fb7bca659fcf
-
 	fromColumn: mensalidades.aluno_id
 	toColumn: alunos.aluno_id
 
 relationship a74e4361-a5b0-4274-9bc4-59af961f7ed0
-
 	fromColumn: matriz_curricular.curso_id
 	toColumn: cursos.curso_id
 
 relationship a1b757c4-ede2-4ca2-972d-91520a517dbd
-
 	isActive: false
 	fromColumn: matriz_curricular.disciplina_id
 	toColumn: disciplinas.disciplina_id
 
 relationship 1f8db6d8-b12c-42c2-a46a-35e67fe6f971
-
 	fromColumn: prerequisitos_disciplinas.disciplina_id
 	toColumn: disciplinas.disciplina_id
 
 relationship ac874255-12e9-4e86-b0e5-8f76434df14a
-
 	isActive: false
 	fromColumn: prerequisitos_disciplinas.prerequisito_disciplina_id
 	toColumn: disciplinas.disciplina_id
 
 relationship 5dce6717-e6ae-4786-95a1-ed4eadf74315
-
 	isActive: false
 	fromColumn: alunos.turma_principal_id
 	toColumn: turmas.turma_id
 
 relationship 98481292-4386-43ac-afb7-9071d286daa3
-
 	fromColumn: mensalidades.competencia
 	toColumn: dim_calendario.data
 
 relationship 5a63bb5c-27e6-42c2-8717-a380f5a9aaf9
-
 	isActive: false
 	fromColumn: matriculas.data_matricula
 	toColumn: dim_calendario.data
 
 relationship 8b3d35e9-1bd8-4a8c-8bd6-b2cac56957b3
-
 	isActive: false
 	fromColumn: aulas.data_aula
 	toColumn: dim_calendario.data
+
