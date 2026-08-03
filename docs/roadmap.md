@@ -52,12 +52,15 @@ Infraestrutura JSON (estrutura de pastas, `themeCollection`, drillthrough,
 tooltip de página, convenção de nomes de pasta/id, limites do serviço) está
 validada em campo (VILLA MT). Catálogo de visuais herdado do `gerar-pbix`,
 portado pra PBIR em [references/catalogo-visuais.md](../skills/gerar-visuais-pbir/references/catalogo-visuais.md)
-— **14 de 14 tipos nativos com template real**, catálogo completo:
+— **16 de 16 tipos nativos com template real**, catálogo completo:
 | Visual (gerar-pbix) | PBIR | Status |
 |---|---|---|
 | card_vc | visual.json tipo card | ✅ template real |
 | donut_vc | visual.json tipo donutChart | ✅ template real |
 | bar_vc / column_vc | visual.json tipo barChart/columnChart | ✅ template real |
+| column_vc + Series (empilhado) | visual.json tipo columnChart com role `Series` | ✅ template real |
+| clustered_column_vc (agrupado) | visual.json tipo clusteredColumnChart | ✅ template real |
+| map_vc | visual.json tipo map (Category=localização, Size=valor) | ✅ template real |
 | line_vc | visual.json tipo lineChart (multi-série) | ✅ template real |
 | table_vc | visual.json tipo tableEx | ✅ template real |
 | shape_vc | visual.json tipo shape | ✅ template real |
@@ -69,6 +72,14 @@ portado pra PBIR em [references/catalogo-visuais.md](../skills/gerar-visuais-pbi
 | combo_vc | visual.json tipo lineClusteredColumnComboChart | ✅ template real (nome nativo != "comboChart", achado corrigido) |
 | image_vc | visual.json tipo image + StaticResources | ✅ template real |
 | nav_button_vc | visual.json tipo actionButton | ✅ template real (ação em `visualContainerObjects.visualLink`, não em `objects` — achado corrigido) |
+
+**Achado crítico (ago/2026)**: quando o valor de um visual agrega uma coluna
+crua (não uma medida DAX pronta), `Aggregation.Function` é **numérico**
+(`0`=Sum, `1`=Average, `2`=DistinctCount, `3`=Min, `4`=Max, `5`=Count), nunca
+string. Gravar `"Function": "Sum"` não gera erro na abertura — o Desktop
+aceita silenciosamente e troca sozinho para uma contagem da própria coluna de
+categoria ao processar a query, sem aviso nenhum. Ver detalhe em
+[catalogo-visuais.md](../skills/gerar-visuais-pbir/references/catalogo-visuais.md#coluna-com-legenda-empilhada-vs-agrupada-e-aggregationfunction-é-numérico).
 
 - [x] `grid()` de layout — portado direto do `gerar-pbix` (matemática pura, sem precisar de teste no Desktop)
 - [x] Filtros de página/visual com valor fixo — testado no Desktop: `filterConfig.filters[]` no PBIR usa a mesma estrutura `From/Where/Condition/In/Values` do `equals_filter()` legado, só sem serialização em string

@@ -212,6 +212,72 @@ escala.
 }
 ```
 
+### Coluna com legenda: empilhada vs. agrupada, e `Aggregation.Function` é numérico
+
+Testado em campo (ago/2026): para colunas **empilhadas por categoria** (ex.:
+Profit por Product, cor = Year), adicionar o role `Series` em
+`queryState` mantendo `visualType: "columnChart"` — o Desktop empilha
+automaticamente quando há uma dimensão em `Series`. Para colunas
+**agrupadas/lado a lado** (ex.: Sales por Product, cor = Segment), o
+`visualType` correto é `clusteredColumnChart` (mesmo `queryState`, só muda o
+tipo). `barChart`/`columnChart`/`clusteredColumnChart` compartilham a mesma
+estrutura de `queryState` — a única diferença é a presença do role `Series` e
+o valor de `visualType`.
+
+```json
+"query": { "queryState": {
+  "Category": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<ColunaEixo>" } }, "queryRef": "<Tabela>.<ColunaEixo>", "nativeQueryRef": "<ColunaEixo>", "active": true }] },
+  "Series": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<ColunaLegenda>" } }, "queryRef": "<Tabela>.<ColunaLegenda>", "nativeQueryRef": "<ColunaLegenda>" }] },
+  "Y": { "projections": [{ "field": { "Aggregation": { "Expression": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<ColunaValor>" } }, "Function": 0 } }, "queryRef": "Sum(<Tabela>.<ColunaValor>)", "nativeQueryRef": "Soma de <ColunaValor>" }] }
+} }
+```
+
+**Armadilha crítica confirmada em campo**: quando o valor (`Y`) agrega uma
+**coluna crua** (em vez de referenciar uma medida DAX já pronta em
+`_Medidas`), o campo `Aggregation.Function` **é numérico**
+(`QueryAggregateFunction`: `0`=Sum, `1`=Average, `2`=DistinctCount, `3`=Min,
+`4`=Max, `5`=Count), **nunca string** (`"Sum"`). Gravar `"Function": "Sum"`
+não gera erro de abertura — o Desktop aceita o arquivo silenciosamente, mas
+ao processar a query ele não reconhece o valor e troca sozinho para uma
+contagem (`Count`) da **própria coluna de categoria**, sem avisar. O sintoma
+em tela é um valor completamente errado no gráfico (ex.: contagem de
+`Product` em vez de soma de `Profit`), não um erro visível. **Sempre usar o
+código numérico** ao montar `Aggregation.Function` para coluna crua; quando
+possível, preferir referenciar uma medida DAX (`Measure`, sem
+`Aggregation`/`Function`) — elimina essa classe de erro por completo, já que
+a agregação já está definida no modelo.
+
+## map_vc — mapa de bolhas (`visualType: map`)
+
+Uso: localização geográfica (nome de país/cidade/estado, geocoded pelo Bing
+Maps) no eixo `Category`, valor numérico agregado no eixo `Size` (tamanho da
+bolha). Testado em campo (ago/2026) com `Category` = país, `Size` = soma de
+uma métrica financeira.
+
+```json
+{
+  "visual": {
+    "visualType": "map",
+    "query": { "queryState": {
+      "Category": { "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<ColunaLocalizacao>" } }, "queryRef": "<Tabela>.<ColunaLocalizacao>", "nativeQueryRef": "<ColunaLocalizacao>", "active": true }] },
+      "Size": { "projections": [{ "field": { "Aggregation": { "Expression": { "Column": { "Expression": { "SourceRef": { "Entity": "<Tabela>" } }, "Property": "<ColunaValor>" } }, "Function": 0 } }, "queryRef": "Sum(<Tabela>.<ColunaValor>)", "nativeQueryRef": "Soma de <ColunaValor>" }] }
+    } },
+    "objects": {
+      "categoryLabels": [{ "properties": { "show": { "expr": { "Literal": { "Value": "false" } } } } }]
+    },
+    "visualContainerObjects": {
+      "title": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "text": {"expr":{"Literal":{"Value":"'<Título>'"}}}, "fontColor": {"solid":{"color":{"expr":{"Literal":{"Value":"'#15314F'"}}}}}, "fontSize": {"expr":{"Literal":{"Value":"12D"}}} } }],
+      "background": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#FFFFFF'"}}}}} } }],
+      "border": [{ "properties": { "show": {"expr":{"Literal":{"Value":"true"}}}, "color": {"solid":{"color":{"expr":{"Literal":{"Value":"'#E5E9F0'"}}}}}, "radius": {"expr":{"Literal":{"Value":"8D"}}} } }]
+    }
+  }
+}
+```
+
+`Location`/`Latitude`/`Longitude`/`Tooltips` são roles adicionais opcionais
+(não testados ainda) para quando o texto da categoria sozinho não geocodifica
+bem — ver painel de campos do visual `map` no Desktop.
+
 ## line_vc — linha, com múltiplas séries (`visualType: lineChart`)
 
 Uso: série temporal (ex.: Receita Prevista vs. Recebida por mês). Ao
