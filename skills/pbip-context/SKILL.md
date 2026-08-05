@@ -1,8 +1,8 @@
 ---
 name: pbip-context
-description: Contexto técnico do formato PBIP (Power BI Project) - estrutura de pastas, TMDL, PBIR, o que versionar, armadilhas conhecidas, diagnóstico de visual em branco. Injetar antes de qualquer geração com gerar-modelo-tmdl ou gerar-visuais-pbir, ou ao investigar um visual/card que não mostra dado mesmo com o modelo aparentemente correto.
+description: Contexto técnico do formato PBIP (Power BI Project) - estrutura de pastas, TMDL, PBIR, o que versionar, armadilhas conhecidas, diagnóstico de visual em branco, ciclo salvar/fechar/reabrir automatizado com o Desktop. Injetar antes de qualquer geração com gerar-modelo-tmdl ou gerar-visuais-pbir, ao investigar um visual/card que não mostra dado mesmo com o modelo aparentemente correto, ou ao editar um projeto PBIP existente alternando entre TOM (Desktop aberto) e PBIR (Desktop fechado).
 allowed-tools: [Read, Glob, Grep]
-version: 0.3.0
+version: 0.4.0
 ---
 
 # pbip-context — Regras do formato PBIP
@@ -85,6 +85,63 @@ completo em [references/rename-cascade.md](references/rename-cascade.md)
 (19 pontos pra rename de tabela, incluindo os mais fáceis de esquecer:
 `sortDefinition`, SparklineData, os dois `Entity` de cada bookmark, e os
 dois locais de `DAXQueries/`).
+
+## Ciclo salvar → fechar → editar → reabrir com autonomia (validado ago/2026)
+
+O ciclo de trabalho real com PBIP alterna entre dois modos que se excluem: o
+Desktop **aberto** (para editar modelo/medidas via TOM, `gerar-etl-tom`) e o
+Desktop **fechado** (para editar PBIR, regra #1 acima). Boa parte desse ciclo
+dá para automatizar sem pedir para o usuário clicar em nada — o único passo
+sem API oficial é o "Ctrl+S" dentro do Desktop, mas mesmo esse dá para
+simular. Guia completo, do mais para o menos confiável:
+
+1. **Abrir o `.pbip`**: `Start-Process "<caminho>\Projeto.pbip"` (PowerShell).
+2. **Aguardar carregar**: fazer polling do processo `msmdsrv.exe` (o motor
+   Analysis Services local só sobe depois que o Desktop termina de abrir o
+   modelo) em vez de um `sleep` fixo — carregar pode levar de alguns segundos
+   a alguns minutos dependendo do tamanho do modelo:
+   ```bash
+   for i in $(seq 1 24); do
+     tasklist 2>/dev/null | grep -qi msmdsrv && break
+     sleep 10
+   done
+   ```
+3. **Salvar (Ctrl+S) sem clique manual**: ativar a janela do processo e
+   enviar o atalho via PowerShell:
+   ```powershell
+   Add-Type -AssemblyName Microsoft.VisualBasic
+   Add-Type -AssemblyName System.Windows.Forms
+   [Microsoft.VisualBasic.Interaction]::AppActivate(<PID>)
+   Start-Sleep -Milliseconds 500
+   [System.Windows.Forms.SendKeys]::SendWait("^s")
+   ```
+   Validado em campo: `AppActivate` pode retornar vazio mesmo quando funciona
+   (não é um indicador confiável de sucesso) — a forma de confirmar que
+   salvou de verdade é conferir o **timestamp de modificação** de um arquivo
+   PBIR conhecido (ex. `visual.json` que acabou de ser editado) depois de
+   alguns segundos, não confiar no retorno do comando. **Risco conhecido**:
+   `SendKeys` depende da janela estar em primeiro plano/não minimizada — se
+   isso falhar silenciosamente (nenhum arquivo muda de timestamp), cair para
+   pedir o Ctrl+S manual ao usuário como fallback, não insistir tentando de
+   novo às cegas.
+4. **Fechar sem salvar** (para descartar um estado intermediário/de teste, ou
+   antes de editar PBIR depois de já ter confirmado o save do passo 3):
+   `Stop-Process -Id <PID> -Force`. Não pede confirmação de diálogo porque o
+   projeto já foi salvo no passo anterior — só fecha o processo.
+5. **Editar os arquivos PBIR/TMDL** normalmente (Desktop já fechado).
+6. **Reabrir e validar**: repetir o passo 1-2, e usar `gerar-etl-tom`
+   `dax-query` para validar os números via medida antes de pedir confirmação
+   visual — economiza um ciclo inteiro de "abrir → olhar → relatar engano"
+   quando o problema não é visual, é de dado/fórmula (ver seção de
+   diagnóstico abaixo).
+
+**O que continua exigindo o usuário, e por quê**: só a **confirmação visual
+final** (o print da tela) — nenhuma API oficial (TOM, ADOMD, ODBC) renderiza
+o layout do relatório como o motor de visuais do Desktop faz, então não tem
+como "ver" um gráfico programaticamente. Deixar claro ao usuário, ao pedir
+essa validação, que já foi tudo testado numericamente antes (via `dax-query`)
+e que o print é só a checagem final de layout/formatação — não uma repetição
+do trabalho de diagnóstico.
 
 ## Diagnosticando um visual "(Em branco)" quando a medida calcula certo (validado ago/2026)
 
