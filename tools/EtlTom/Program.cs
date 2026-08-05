@@ -80,6 +80,8 @@ try
             return CmdAddRelationship(model, opts);
         case "list-relationships":
             return CmdListRelationships(model);
+        case "remove-relationship":
+            return CmdRemoveRelationship(model, opts);
         case "add-measure":
             return CmdAddMeasure(model, opts);
         case "update-measure":
@@ -90,6 +92,10 @@ try
             return CmdAddMeasureTable(model, opts);
         case "list-measures":
             return CmdListMeasures(model);
+        case "set-sort-by-column":
+            return CmdSetSortByColumn(model, opts);
+        case "set-column-type":
+            return CmdSetColumnType(model, opts);
         case "add-calc-column":
             return CmdAddCalcColumn(model, opts);
         case "update-m":
@@ -351,6 +357,85 @@ static int CmdListRelationships(Model model)
             Console.WriteLine($"  {scr.FromTable.Name}.{scr.FromColumn.Name} -> {scr.ToTable.Name}.{scr.ToColumn.Name} ({active})");
         }
     }
+    return 0;
+}
+
+static int CmdRemoveRelationship(Model model, Dictionary<string, string> opts)
+{
+    // --from "Tabela.Coluna" --to "Tabela.Coluna"
+    if (!opts.TryGetValue("from", out var fromSpec) || !opts.TryGetValue("to", out var toSpec))
+    {
+        Console.Error.WriteLine("[ERRO] remove-relationship exige --from \"Tabela.Coluna\" e --to \"Tabela.Coluna\"");
+        return 1;
+    }
+    var (fromTable, fromCol) = SplitTableColumn(fromSpec);
+    var (toTable, toCol) = SplitTableColumn(toSpec);
+
+    SingleColumnRelationship? found = null;
+    foreach (var r in model.Relationships)
+    {
+        if (r is SingleColumnRelationship scr &&
+            scr.FromColumn.Table.Name == fromTable && scr.FromColumn.Name == fromCol &&
+            scr.ToColumn.Table.Name == toTable && scr.ToColumn.Name == toCol)
+        {
+            found = scr;
+            break;
+        }
+    }
+    if (found == null)
+    {
+        Console.Error.WriteLine($"[ERRO] Relacionamento {fromTable}.{fromCol} -> {toTable}.{toCol} nao encontrado.");
+        return 1;
+    }
+    model.Relationships.Remove(found);
+    model.SaveChanges();
+    Console.WriteLine($"[OK] Relacionamento removido: {fromTable}.{fromCol} -> {toTable}.{toCol}");
+    return 0;
+}
+
+static int CmdSetSortByColumn(Model model, Dictionary<string, string> opts)
+{
+    // --column "Tabela.Coluna" --by "Tabela.ColunaOrdinal"
+    if (!opts.TryGetValue("column", out var colSpec) || !opts.TryGetValue("by", out var bySpec))
+    {
+        Console.Error.WriteLine("[ERRO] set-sort-by-column exige --column \"Tabela.Coluna\" e --by \"Tabela.ColunaOrdinal\"");
+        return 1;
+    }
+    var (colTable, colName) = SplitTableColumn(colSpec);
+    var (byTable, byName) = SplitTableColumn(bySpec);
+    if (colTable != byTable)
+    {
+        Console.Error.WriteLine("[ERRO] --column e --by precisam ser da mesma tabela.");
+        return 1;
+    }
+    var table = model.Tables.Find(colTable);
+    if (table == null) { Console.Error.WriteLine($"[ERRO] Tabela '{colTable}' nao encontrada."); return 1; }
+    var col = table.Columns.Find(colName);
+    var byCol = table.Columns.Find(byName);
+    if (col == null) { Console.Error.WriteLine($"[ERRO] Coluna '{colName}' nao encontrada em '{colTable}'."); return 1; }
+    if (byCol == null) { Console.Error.WriteLine($"[ERRO] Coluna '{byName}' nao encontrada em '{colTable}'."); return 1; }
+    col.SortByColumn = byCol;
+    model.SaveChanges();
+    Console.WriteLine($"[OK] '{colTable}'[{colName}] agora ordena por [{byName}].");
+    return 0;
+}
+
+static int CmdSetColumnType(Model model, Dictionary<string, string> opts)
+{
+    // --column "Tabela.Coluna" --type datetime|string|int64|double|decimal|boolean
+    if (!opts.TryGetValue("column", out var colSpec) || !opts.TryGetValue("type", out var typeStr))
+    {
+        Console.Error.WriteLine("[ERRO] set-column-type exige --column \"Tabela.Coluna\" e --type <tipo>");
+        return 1;
+    }
+    var (tableName, colName) = SplitTableColumn(colSpec);
+    var table = model.Tables.Find(tableName);
+    if (table == null) { Console.Error.WriteLine($"[ERRO] Tabela '{tableName}' nao encontrada."); return 1; }
+    var col = table.Columns.Find(colName);
+    if (col == null) { Console.Error.WriteLine($"[ERRO] Coluna '{colName}' nao encontrada em '{tableName}'."); return 1; }
+    col.DataType = ParseDataType(typeStr);
+    model.SaveChanges();
+    Console.WriteLine($"[OK] '{tableName}'[{colName}] agora tem tipo {col.DataType}.");
     return 0;
 }
 
@@ -638,6 +723,7 @@ static void PrintUsage()
           etl-tom refresh-table --name <nome> [--port N]
           etl-tom add-relationship --from "Tabela.Coluna" --to "Tabela.Coluna" [--port N]
           etl-tom list-relationships [--port N]
+          etl-tom remove-relationship --from "Tabela.Coluna" --to "Tabela.Coluna" [--port N]
           etl-tom add-measure-table --name <nome> [--port N]
           etl-tom add-measure --table <host> --name <nome> --dax <arq.dax> [--format "0.0%"] [--port N]
           etl-tom update-measure --table <host> --name <nome> --dax <arq.dax> [--format "0.0%"] [--port N]
@@ -646,6 +732,8 @@ static void PrintUsage()
           etl-tom update-m --name <tabela> --m <arq.m> [--refresh] [--port N]
           etl-tom list-measures [--port N]
           etl-tom dax-query --expr "<DAX EVALUATE ...>" [--port N]
+          etl-tom set-sort-by-column --column "Tabela.Coluna" --by "Tabela.ColunaOrdinal" [--port N]
+          etl-tom set-column-type --column "Tabela.Coluna" --type <tipo> [--port N]
 
         Tipos de coluna: string | int64 | double | decimal | datetime | boolean
         Relacionamento: --from = lado "muitos" (fato), --to = lado "um" (dimensao).

@@ -1,9 +1,9 @@
 ---
 name: gerar-etl-tom
-description: Cria/gerencia tabelas, medidas e ETL (Power Query M) dentro de um Power BI Desktop ABERTO, via TOM/XMLA na instancia local do Analysis Services. Use quando o usuario pedir para injetar query M, criar/editar medidas DAX, rodar uma query DAX de diagnostico, auditar se um KPI esta correto, ou automatizar o Power Query/modelo sem clicar na interface. Requer Power BI Desktop aberto com o .pbix carregado.
-argument-hint: <comando: list | export-m | add-table | remove-table | refresh-table | update-measure | dax-query>
+description: Cria/gerencia tabelas, medidas, relacionamentos e ETL (Power Query M) dentro de um Power BI Desktop ABERTO, via TOM/XMLA na instancia local do Analysis Services. Use quando o usuario pedir para injetar query M, criar/editar medidas DAX, rodar uma query DAX de diagnostico, auditar se um KPI esta correto, investigar por que um relatorio publicado no Servico difere do Desktop, ou automatizar o Power Query/modelo sem clicar na interface. Requer Power BI Desktop aberto com o .pbix carregado.
+argument-hint: <comando: list | export-m | add-table | remove-table | refresh-table | update-measure | dax-query | set-column-type>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 1.1.0
+version: 1.2.0
 ---
 
 # /gerar-etl-tom — ETL/Power Query via TOM (Analysis Services local)
@@ -57,6 +57,15 @@ dotnet run --project tools/EtlTom -- update-measure --table dim_nova --name "Min
 
 # Rodar uma query DAX arbitraria contra o modelo aberto (validar hipoteses antes de mudar uma medida)
 dotnet run --project tools/EtlTom -- dax-query --expr "EVALUATE ROW(\"Total\", COUNTROWS(dim_nova))"
+
+# Remover um relacionamento (ex.: antes de recriar apontando para outra coluna)
+dotnet run --project tools/EtlTom -- remove-relationship --from "fato.data_x" --to "dim_calendario.Data BR"
+
+# Corrigir o tipo de uma coluna existente (ex.: uma coluna de data que ficou como texto)
+dotnet run --project tools/EtlTom -- set-column-type --column "dim_calendario.Data" --type datetime
+
+# Definir a ordenacao de uma coluna categorica por outra coluna (ex.: nome do dia por numero do dia)
+dotnet run --project tools/EtlTom -- set-sort-by-column --column "dim_dias.NomeDia" --by "dim_dias.Ordinal"
 ```
 
 ### 3. Gerar o arquivo .m a partir de SQL
@@ -135,6 +144,102 @@ antigo; trocar a fórmula sem avisar quebra a confiança no painel.
 Isso é diferente de um bug de **binding/estado** (ver `pbip-context` — filtro
 salvo desatualizado, slicer travado), que não muda o *significado* da métrica e
 pode ser corrigido sem essa aprovação extra.
+
+## TODAY()/data corrente divergindo entre Desktop e Serviço publicado (validado ago/2026)
+
+Sintoma: uma medida ou tabela calculada que depende de "hoje" (`TODAY()` em
+DAX, `DateTime.LocalNow()` em M) mostra dias/valores diferentes no Power BI
+Desktop local e no mesmo relatório publicado no Serviço — mesmo depois de
+publicar de novo e confirmar via histórico que o refresh rodou com sucesso.
+
+**Causa**: `TODAY()`/`LocalNow()` refletem o relógio e o fuso horário de quem
+está **processando** o cálculo — no Desktop é a máquina do usuário; no Serviço
+é o datacenter/gateway, que pode estar em outro fuso (ou UTC). Um chamado
+"fechado hoje" no fuso do Brasil pode já ser "amanhã" no fuso de quem calcula
+no Serviço, deslocando toda uma janela de "semana atual" por um ou mais dias.
+O fuso configurado nas Configurações do dataset (seção "Atualizar") **não
+corrige isso** — essa configuração só regula o horário do agendamento e o
+comportamento de partições de atualização incremental, não o valor retornado
+por `TODAY()`/`LocalNow()` dentro das fórmulas.
+
+**Correção**: nunca usar `TODAY()`/`DateTime.LocalNow()` puro em medidas ou
+tabelas calculadas que dependem de "o dia de hoje" ser consistente entre
+ambientes. Usar `UTCNOW()` (DAX) ou `DateTimeZone.UtcNow()` (M) com um offset
+fixo somado manualmente:
+```dax
+VAR HojeCorrigido = DATE(YEAR(UTCNOW()-TIME(4,0,0)), MONTH(UTCNOW()-TIME(4,0,0)), DAY(UTCNOW()-TIME(4,0,0)))
+```
+```m
+AgoraLocal = DateTimeZone.SwitchZone(DateTimeZone.UtcNow(), -4, 0),
+Hoje = DateTime.Date(DateTimeZone.RemoveZone(AgoraLocal))
+```
+(o offset `-4`/`-4,0` é um exemplo — usar o offset do fuso relevante ao
+negócio). UTC é o mesmo em qualquer processo, então o resultado fica idêntico
+não importa onde a query rode.
+
+## Coluna com tipo divergente entre M e TMDL — funciona no Desktop, quebra no Serviço (validado ago/2026)
+
+Sintoma parecido ao de cima, mas a causa é outra: uma coluna gerada por M
+(`add-table --columns "Col:datetime,..."` ou similar) fica com o tipo errado
+no modelo — por exemplo, uma coluna de data acaba `dataType: string` no TMDL
+em vez de `dataType: dateTime`, apesar da query M produzir valores de data.
+Isso pode acontecer mesmo passando o tipo certo no comando (um refresh
+subsequente pode reverter, ou a tabela ter sido criada por um caminho que não
+respeitou o tipo pedido) — **sempre conferir o `dataType:` real no `.tmdl`
+depois de criar/alterar uma tabela calculada**, não assumir que bateu com o
+que foi pedido.
+
+Uma coluna assim usada num filtro cruzado (`TREATAS`, relacionamento) entre
+tabelas pode **funcionar por coincidência no Desktop** — mesma engine, mesma
+cultura, comparação texto-contra-data feita com conversão implícita tolerante
+— e **divergir no Serviço**, onde o motor de query pode tratar essa mesma
+comparação de forma diferente o suficiente para nunca casar nenhuma linha (ou
+casar a linha errada). O sintoma característico é: a query isolada via
+`dax-query` no Desktop retorna o valor certo, o visual no Desktop mostra
+certo, mas o mesmo relatório publicado mostra outra coisa — sem nenhum erro
+visível em lugar nenhum.
+
+**Diagnóstico**: `grep dataType` no `.tmdl` da tabela suspeita antes de gastar
+ciclos publicando/comparando — conferir se cada coluna usada em `TREATAS`/
+relacionamento tem o tipo que a lógica espera (data como `dateTime`, não
+`string`; número como `int64`/`double`, não `string`).
+
+**Correção**: `set-column-type --column "Tabela.Coluna" --type datetime`
+seguido de `refresh-table --name Tabela` (o refresh é necessário para os
+valores já carregados como texto serem reconvertidos — só mudar o tipo
+declarado não reprocessa os dados existentes).
+
+## "Publiquei e não mudou nada no Serviço" — roteiro de eliminação (validado ago/2026)
+
+Quando uma correção aplicada e publicada não aparece no relatório do Serviço,
+mesmo após publicar de novo, investigar NESTA ordem antes de suspeitar de algo
+mais exótico — cada passo é mais barato que o próximo e descarta uma classe
+inteira de causa:
+
+1. **Cache do navegador**: `Ctrl+Shift+R` (recarregamento forçado) na aba do
+   relatório antes de qualquer outra coisa.
+2. **Item errado**: workspaces acumulam relatórios com nomes parecidos (cópias
+   de teste, versões antigas renomeadas). Conferir que o link/item aberto é
+   mesmo o publicado agora — abrir a partir do link de sucesso que o próprio
+   Desktop mostra ao publicar, não de um favorito/aba antiga.
+3. **Refresh de dados não rodou ainda**: Publicar atualiza a *definição*
+   (modelo, medidas, visuais) — os *dados* só recalculam num refresh do
+   dataset. Conferir "Histórico de atualização" nas configurações do dataset:
+   se a última atualização bem-sucedida é anterior à publicação, disparar
+   "Atualizar agora" e esperar completar antes de checar de novo.
+4. **Cache de consulta do dataset**: seção "Cache de Consulta" nas
+   configurações do dataset — se ativado, pode servir resultado antigo mesmo
+   com dado novo. Confirmar que está "Inativo" ou desativado explicitamente
+   antes de descartar essa causa.
+5. **Fuso horário do cálculo** (ver seção acima) — se a métrica depende de
+   "hoje", o valor pode estar correto para o fuso de quem calculou, só que
+   esse fuso não é o esperado.
+6. **Tipo de coluna divergente** (ver seção acima) — o caso mais difícil de
+   suspeitar porque não gera nenhum erro, só um resultado sutilmente errado
+   só num dos dois ambientes.
+
+Só depois de eliminar 1-6 vale suspeitar de algo específico do ambiente
+(permissão de gateway, versão de driver, etc.).
 
 ## Erros comuns
 
