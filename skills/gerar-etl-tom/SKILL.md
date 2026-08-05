@@ -1,9 +1,9 @@
 ---
 name: gerar-etl-tom
-description: Cria/gerencia tabelas e ETL (Power Query M) dentro de um Power BI Desktop ABERTO, via TOM/XMLA na instancia local do Analysis Services. Use quando o usuario pedir para injetar query M, criar tabela a partir de SQL, exportar as queries M de um painel, ou automatizar o Power Query sem clicar na interface. Requer Power BI Desktop aberto com o .pbix carregado.
-argument-hint: <comando: list | export-m | add-table | remove-table | refresh-table>
+description: Cria/gerencia tabelas, medidas e ETL (Power Query M) dentro de um Power BI Desktop ABERTO, via TOM/XMLA na instancia local do Analysis Services. Use quando o usuario pedir para injetar query M, criar/editar medidas DAX, rodar uma query DAX de diagnostico, auditar se um KPI esta correto, ou automatizar o Power Query/modelo sem clicar na interface. Requer Power BI Desktop aberto com o .pbix carregado.
+argument-hint: <comando: list | export-m | add-table | remove-table | refresh-table | update-measure | dax-query>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 1.0.0
+version: 1.1.0
 ---
 
 # /gerar-etl-tom — ETL/Power Query via TOM (Analysis Services local)
@@ -51,6 +51,12 @@ dotnet run --project tools/EtlTom -- remove-table --name dim_nova
 
 # Recarregar dados de uma tabela existente
 dotnet run --project tools/EtlTom -- refresh-table --name dim_nova
+
+# Trocar o DAX de uma medida existente, preservando relacionamentos/dependentes
+dotnet run --project tools/EtlTom -- update-measure --table dim_nova --name "Minha Medida" --dax ./medida.dax
+
+# Rodar uma query DAX arbitraria contra o modelo aberto (validar hipoteses antes de mudar uma medida)
+dotnet run --project tools/EtlTom -- dax-query --expr "EVALUATE ROW(\"Total\", COUNTROWS(dim_nova))"
 ```
 
 ### 3. Gerar o arquivo .m a partir de SQL
@@ -95,6 +101,40 @@ Fechar sem salvar descarta tudo — o que também é o "undo" natural em caso de
 3. **Credenciais de fonte**: o refresh usa as credenciais que o Power BI Desktop já tem para aquela fonte. Fonte nova nunca usada antes pode exigir configurar a credencial uma vez na UI (Transformar dados → Configurações da fonte de dados).
 4. **Um painel aberto por vez** é o cenário previsível. Vários abertos = várias instâncias AS = usar `--port` explícito.
 5. **Não editar tabelas do modelo criadas como "grupo de medidas"** (tabelas só com medidas) sem necessidade — o valor está nas medidas, não na fonte M.
+
+## Auditando a corretude de uma métrica antes de mudar o DAX
+
+Quando o usuário desconfia de um KPI (ex.: "esse total parece inflado" ou pede uma
+auditoria de um painel em produção), **medir antes de mudar** — `dax-query` deixa
+rodar `EVALUATE` livre contra o modelo aberto, então dá para comparar duas versões
+de uma métrica lado a lado sem tocar em nenhuma medida:
+
+```powershell
+dotnet run --project tools/EtlTom -- dax-query --expr "EVALUATE ROW(\"Bruto\", COUNTROWS(fato), \"Distinto\", DISTINCTCOUNT(fato[id_chave]))"
+```
+
+**Armadilha recorrente em tabelas fato vindas de um JOIN N:N** (ex.: fato de eventos
+unida a uma tabela de vínculos/papéis, onde uma linha-mãe pode ter múltiplos
+vínculos): qualquer `COUNTROWS`/`SUM` direto sobre essa tabela conta a linha-mãe
+uma vez por vínculo, inflando totais, médias (`AVERAGEX` pesando o mesmo registro
+mais de uma vez) e rankings por `SUMMARIZE`. O sintoma é sutil — a query M e o
+relacionamento estão corretos, o "bug" é de granularidade, não de sintaxe. Antes
+de aceitar um `COUNTROWS(tabela)` como "total de X", perguntar: essa tabela tem
+uma linha por evento, ou uma linha por (evento × vínculo)? Se for a segunda,
+trocar por `DISTINCTCOUNT(tabela[chave_do_evento])` (ou `CALCULATE(DISTINCTCOUNT(...), <mesmos filtros>)`
+para medidas com filtro) — e para médias, agregar primeiro com `SUMMARIZE`/`MAX`
+por chave antes do `AVERAGEX`, não direto sobre a tabela crua.
+
+**Toda mudança de DAX que altera o valor exibido é uma decisão de negócio, não uma
+correção silenciosa.** Medir com `dax-query` primeiro, reportar os números
+antes/depois ao usuário, e só aplicar com `update-measure` após confirmação
+explícita — mesmo quando a causa técnica (duplicação, agregação errada) é
+inequívoca. Números históricos/capturas de tela já existem baseados no valor
+antigo; trocar a fórmula sem avisar quebra a confiança no painel.
+
+Isso é diferente de um bug de **binding/estado** (ver `pbip-context` — filtro
+salvo desatualizado, slicer travado), que não muda o *significado* da métrica e
+pode ser corrigido sem essa aprovação extra.
 
 ## Erros comuns
 
