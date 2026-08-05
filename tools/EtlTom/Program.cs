@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AnalysisServices.Tabular;
+using AdomdConnection = Microsoft.AnalysisServices.AdomdClient.AdomdConnection;
 
 // etl-tom — injeta e gerencia tabelas/ETL (Power Query M) no modelo Tabular
 // da instancia local de Analysis Services que o Power BI Desktop mantem aberta.
@@ -81,6 +82,8 @@ try
             return CmdListRelationships(model);
         case "add-measure":
             return CmdAddMeasure(model, opts);
+        case "update-measure":
+            return CmdUpdateMeasure(model, opts);
         case "remove-measure":
             return CmdRemoveMeasure(model, opts);
         case "add-measure-table":
@@ -91,6 +94,8 @@ try
             return CmdAddCalcColumn(model, opts);
         case "update-m":
             return CmdUpdateM(model, opts);
+        case "dax-query":
+            return CmdDaxQuery(port, opts);
         default:
             Console.Error.WriteLine($"[ERRO] Comando desconhecido: {command}");
             PrintUsage();
@@ -490,10 +495,71 @@ static int CmdListMeasures(Model model)
         foreach (Measure mea in t.Measures)
         {
             Console.WriteLine($"  [{t.Name}] {mea.Name}");
+            Console.WriteLine($"    DAX: {mea.Expression}");
             total++;
         }
     }
     if (total == 0) Console.WriteLine("(sem medidas)");
+    return 0;
+}
+
+static int CmdUpdateMeasure(Model model, Dictionary<string, string> opts)
+{
+    // --table <tabela host> --name <nome medida> --dax <arquivo.dax> [--format "0.0%"]
+    // Troca a expressao DAX de uma medida EXISTENTE, preservando relacionamentos/dependentes.
+    if (!opts.TryGetValue("table", out var tableName) ||
+        !opts.TryGetValue("name", out var measureName) ||
+        !opts.TryGetValue("dax", out var daxFile))
+    {
+        Console.Error.WriteLine("[ERRO] update-measure exige --table, --name e --dax <arquivo.dax>");
+        return 1;
+    }
+    var table = model.Tables.Find(tableName);
+    if (table == null)
+    {
+        Console.Error.WriteLine($"[ERRO] Tabela host '{tableName}' nao encontrada.");
+        return 1;
+    }
+    var measure = table.Measures.Find(measureName);
+    if (measure == null)
+    {
+        Console.Error.WriteLine($"[ERRO] Medida '{measureName}' nao encontrada em '{tableName}'. Use add-measure para criar.");
+        return 1;
+    }
+    var dax = File.ReadAllText(daxFile, Encoding.UTF8).Trim();
+    measure.Expression = dax;
+    if (opts.TryGetValue("format", out var fmt))
+        measure.FormatString = fmt;
+    model.SaveChanges();
+    Console.WriteLine($"[OK] Medida '{measureName}' atualizada em '{tableName}'.");
+    return 0;
+}
+
+static int CmdDaxQuery(int port, Dictionary<string, string> opts)
+{
+    // --expr "<DAX EVALUATE ...>"
+    // Roda uma query DAX arbitraria contra o modelo aberto e imprime o resultado
+    // em formato tabular. Util para validar hipoteses (ex: comparar COUNTROWS vs
+    // DISTINCTCOUNT) antes de decidir se uma medida precisa mudar.
+    if (!opts.TryGetValue("expr", out var expr))
+    {
+        Console.Error.WriteLine("[ERRO] dax-query exige --expr, ex: --expr \"EVALUATE ROW(\\\"x\\\", 1+1)\"");
+        return 1;
+    }
+    using var conn = new AdomdConnection($"Provider=MSOLAP;Data Source=localhost:{port};");
+    conn.Open();
+    using var cmd = conn.CreateCommand();
+    cmd.CommandText = expr;
+    using var reader = cmd.ExecuteReader();
+    var headers = new string[reader.FieldCount];
+    for (int i = 0; i < reader.FieldCount; i++) headers[i] = reader.GetName(i);
+    Console.WriteLine(string.Join(" | ", headers));
+    while (reader.Read())
+    {
+        var vals = new string[reader.FieldCount];
+        for (int i = 0; i < reader.FieldCount; i++) vals[i] = reader.GetValue(i)?.ToString() ?? "(null)";
+        Console.WriteLine(string.Join(" | ", vals));
+    }
     return 0;
 }
 
@@ -574,10 +640,12 @@ static void PrintUsage()
           etl-tom list-relationships [--port N]
           etl-tom add-measure-table --name <nome> [--port N]
           etl-tom add-measure --table <host> --name <nome> --dax <arq.dax> [--format "0.0%"] [--port N]
+          etl-tom update-measure --table <host> --name <nome> --dax <arq.dax> [--format "0.0%"] [--port N]
           etl-tom remove-measure --table <host> --name <nome> [--port N]
           etl-tom add-calc-column --table <tabela> --name <nome> --dax <arq.dax> [--port N]
           etl-tom update-m --name <tabela> --m <arq.m> [--refresh] [--port N]
           etl-tom list-measures [--port N]
+          etl-tom dax-query --expr "<DAX EVALUATE ...>" [--port N]
 
         Tipos de coluna: string | int64 | double | decimal | datetime | boolean
         Relacionamento: --from = lado "muitos" (fato), --to = lado "um" (dimensao).

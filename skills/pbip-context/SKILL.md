@@ -1,8 +1,8 @@
 ---
 name: pbip-context
-description: Contexto técnico do formato PBIP (Power BI Project) - estrutura de pastas, TMDL, PBIR, o que versionar, armadilhas conhecidas. Injetar antes de qualquer geração com gerar-modelo-tmdl ou gerar-visuais-pbir.
+description: Contexto técnico do formato PBIP (Power BI Project) - estrutura de pastas, TMDL, PBIR, o que versionar, armadilhas conhecidas, diagnóstico de visual em branco. Injetar antes de qualquer geração com gerar-modelo-tmdl ou gerar-visuais-pbir, ou ao investigar um visual/card que não mostra dado mesmo com o modelo aparentemente correto.
 allowed-tools: [Read, Glob, Grep]
-version: 0.2.0
+version: 0.3.0
 ---
 
 # pbip-context — Regras do formato PBIP
@@ -85,6 +85,47 @@ completo em [references/rename-cascade.md](references/rename-cascade.md)
 (19 pontos pra rename de tabela, incluindo os mais fáceis de esquecer:
 `sortDefinition`, SparklineData, os dois `Entity` de cada bookmark, e os
 dois locais de `DAXQueries/`).
+
+## Diagnosticando um visual "(Em branco)" quando a medida calcula certo (validado ago/2026)
+
+Sintoma: um card/gráfico mostra "(Em branco)" ou "0,00", mas outros visuais na
+mesma página que usam medidas de outras tabelas funcionam normalmente. Antes de
+suspeitar do DAX ou do relacionamento, **isolar a medida do visual**:
+
+1. Com o Desktop aberto, rodar a medida sozinha via `gerar-etl-tom` `dax-query`:
+   ```powershell
+   dotnet run --project tools/EtlTom -- dax-query --expr "EVALUATE ROW(\"x\", [NomeDaMedida])"
+   ```
+   Se o valor vier correto isolado, **o modelo/DAX está saudável** — o problema
+   é de contexto de filtro no relatório, não de fórmula. Testar também com
+   `SUMMARIZECOLUMNS` (a forma real que o Power BI gera para a maioria dos
+   visuais) para descartar diferença de comportamento entre `ROW` e a query
+   real do visual.
+2. Se isolado funciona mas o visual na tela não, **procurar um slicer com
+   seleção travada** — inclusive slicers `isHidden: true` (usados como
+   filtro de controle interno, invisíveis na tela, então o usuário não tem
+   como notar ou desmarcar a seleção pela UI). No `visual.json` do slicer,
+   `objects.general[].properties.filter.filter.Where[].Condition.In.Values`
+   guarda a seleção salva — se tiver um valor fixo (ex.: um ano específico)
+   e esse valor não bater mais com `TODAY()`/dado atual, todo visual cujo
+   filtro efetivo dependa dessa coluna fica vazio, mesmo sem nenhum
+   `filterConfig` visível nos próprios visuais afetados nem na página.
+   Correção: remover o bloco `filter` inteiro de dentro de `general`
+   (Desktop fechado) — o slicer volta a não ter seleção (mostra tudo).
+3. Um segundo padrão, mais raro: um `filterConfig.filters[]` do tipo
+   `"Advanced"` **sem nenhuma condição** (`Values`/`Where` vazios ou
+   ausentes) no próprio visual quebrado. Um filtro Advanced vazio é tratado
+   como "excluir tudo", não "sem filtro" — remover o bloco `filterConfig`
+   inteiro se não houver seleção real dentro dele.
+4. Ao investigar, **não confiar cegamente no relato de um agente auxiliar**
+   sobre qual campo/valor está travado — reabrir o `visual.json` apontado e
+   ler o `Property`/`Value` reais antes de aplicar a correção. Um relatório
+   com o campo ou o valor trocado (ex.: apontar "Mês" quando o travado é
+   "Ano") leva a mexer no arquivo errado.
+
+Esse padrão (dado correto no modelo, ausente na tela) é diferente de um
+`(Blank)` genuíno por falta de dado — sempre validar com `dax-query` antes de
+decidir qual dos dois é o caso.
 
 ## Requisito de versão
 
