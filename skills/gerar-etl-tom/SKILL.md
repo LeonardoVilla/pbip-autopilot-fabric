@@ -177,37 +177,50 @@ Hoje = DateTime.Date(DateTimeZone.RemoveZone(AgoraLocal))
 negócio). UTC é o mesmo em qualquer processo, então o resultado fica idêntico
 não importa onde a query rode.
 
-## Coluna com tipo divergente entre M e TMDL — funciona no Desktop, quebra no Serviço (validado ago/2026)
+## Coluna sem tipo fixado na M — o tipo é reinferido a cada refresh e diverge entre ambientes (validado ago/2026)
 
-Sintoma parecido ao de cima, mas a causa é outra: uma coluna gerada por M
-(`add-table --columns "Col:datetime,..."` ou similar) fica com o tipo errado
-no modelo — por exemplo, uma coluna de data acaba `dataType: string` no TMDL
-em vez de `dataType: dateTime`, apesar da query M produzir valores de data.
-Isso pode acontecer mesmo passando o tipo certo no comando (um refresh
-subsequente pode reverter, ou a tabela ter sido criada por um caminho que não
-respeitou o tipo pedido) — **sempre conferir o `dataType:` real no `.tmdl`
-depois de criar/alterar uma tabela calculada**, não assumir que bateu com o
-que foi pedido.
+Sintoma parecido ao de cima, causa relacionada mas mais funda: uma coluna
+gerada em M por uma função que não declara tipo (`Table.FromList` sem
+especificar tipo de coluna, `Table.FromRecords`, etc.) fica com o `dataType`
+"errado" no modelo — ex.: uma coluna de data vira `dataType: string` no TMDL
+em vez de `dateTime`, mesmo a coluna só conter valores de data.
 
-Uma coluna assim usada num filtro cruzado (`TREATAS`, relacionamento) entre
-tabelas pode **funcionar por coincidência no Desktop** — mesma engine, mesma
-cultura, comparação texto-contra-data feita com conversão implícita tolerante
-— e **divergir no Serviço**, onde o motor de query pode tratar essa mesma
-comparação de forma diferente o suficiente para nunca casar nenhuma linha (ou
-casar a linha errada). O sintoma característico é: a query isolada via
-`dax-query` no Desktop retorna o valor certo, o visual no Desktop mostra
-certo, mas o mesmo relatório publicado mostra outra coisa — sem nenhum erro
-visível em lugar nenhum.
+**Armadilha já vivida em campo**: `set-column-type` (mudar só o tipo
+declarado) **parece resolver** — o refresh seguinte no mesmo Desktop volta a
+mostrar o tipo certo e os visuais ficam corretos — mas é uma correção
+**paliativa**, não a causa raiz. Ela volta a quebrar no refresh seguinte
+(inclusive um refresh disparado no Serviço), porque **sem um
+`Table.TransformColumnTypes` explícito na própria query M, o Power BI
+reinfere o tipo da coluna a cada refresh a partir dos valores brutos** — e
+essa inferência automática não é garantida ser idêntica entre o motor local
+do Desktop e o motor do Serviço/gateway. `set-column-type` muda a *declaração*
+no modelo; não muda o que a M vai reinferir na próxima vez que rodar.
 
-**Diagnóstico**: `grep dataType` no `.tmdl` da tabela suspeita antes de gastar
-ciclos publicando/comparando — conferir se cada coluna usada em `TREATAS`/
-relacionamento tem o tipo que a lógica espera (data como `dateTime`, não
-`string`; número como `int64`/`double`, não `string`).
+Uma coluna nesse estado usada num filtro cruzado (`TREATAS`, relacionamento)
+pode funcionar num Desktop/refresh e quebrar silenciosamente no próximo —
+sem nenhum erro visível, só um resultado categoricamente errado (ex.: um
+gráfico "por dia da semana" mostrando os dias errados). Reaparece mesmo
+depois de "corrigido", porque a correção anterior não tocou a fonte do
+problema.
 
-**Correção**: `set-column-type --column "Tabela.Coluna" --type datetime`
-seguido de `refresh-table --name Tabela` (o refresh é necessário para os
-valores já carregados como texto serem reconvertidos — só mudar o tipo
-declarado não reprocessa os dados existentes).
+**Diagnóstico**: `grep dataType` no `.tmdl` não basta para confirmar que está
+resolvido — conferir também a expressão M da partição (`grep -A20 "partition"`)
+em busca de um `Table.TransformColumnTypes` explícito cobrindo toda coluna
+usada em relacionamento/`TREATAS`. Ausência dele é a bandeira vermelha, mesmo
+que o `dataType:` do TMDL esteja "certo" no momento da checagem.
+
+**Correção definitiva**: adicionar `Table.TransformColumnTypes` explícito na
+query M, fixando o tipo logo após criar a coluna — não depois, via
+`set-column-type` avulso:
+```m
+Tabela = Table.FromList(Dias, Splitter.SplitByNothing(), {"Data"}),
+TipaData = Table.TransformColumnTypes(Tabela, {{"Data", type date}}),
+```
+Aplicar via `update-m --name <Tabela> --m <arquivo.m> --refresh`, depois
+`set-column-type` (agora só para sincronizar a declaração do TMDL com o que a
+M já fixa) e `refresh-table` de novo. A partir daí o tipo não depende mais de
+inferência — está fixado na fonte, então é o mesmo em qualquer motor que
+processe o refresh.
 
 ## "Publiquei e não mudou nada no Serviço" — roteiro de eliminação (validado ago/2026)
 
@@ -234,9 +247,12 @@ inteira de causa:
 5. **Fuso horário do cálculo** (ver seção acima) — se a métrica depende de
    "hoje", o valor pode estar correto para o fuso de quem calculou, só que
    esse fuso não é o esperado.
-6. **Tipo de coluna divergente** (ver seção acima) — o caso mais difícil de
-   suspeitar porque não gera nenhum erro, só um resultado sutilmente errado
-   só num dos dois ambientes.
+6. **Tipo de coluna sem fixação explícita na M** (ver seção acima) — o caso
+   mais difícil de suspeitar porque não gera nenhum erro, e uma correção
+   superficial (`set-column-type` isolado) parece resolver mas volta a
+   quebrar no refresh seguinte. Só considerar eliminado depois de confirmar
+   `Table.TransformColumnTypes` explícito na M, não só o `dataType:` do TMDL
+   no momento da checagem.
 
 Só depois de eliminar 1-6 vale suspeitar de algo específico do ambiente
 (permissão de gateway, versão de driver, etc.).
