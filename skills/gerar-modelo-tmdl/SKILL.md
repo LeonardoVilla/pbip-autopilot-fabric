@@ -3,7 +3,7 @@ name: gerar-modelo-tmdl
 description: Gera/edita o modelo semântico de um projeto Power BI (PBIP) escrevendo arquivos TMDL - tabelas com ETL Power Query M, medidas DAX, colunas calculadas e relacionamentos. Usa qualquer MCP de banco disponível (MSSQL, MySQL, Oracle, PostgreSQL/Supabase, MongoDB, Firebase, SharePoint) ou chamada direta a APIs REST para descobrir schema e validar a consulta antes de embutir no M. Use quando o usuário pedir para criar tabela a partir de SQL, adicionar medida/relacionamento, ou montar o modelo de um painel sem abrir o Power BI Desktop. Não requer Desktop aberto; opera sobre a pasta *.SemanticModel do .pbip.
 argument-hint: <pasta-do-projeto.pbip> <comando: add-table | add-measure | add-relationship | ...>
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.2.0
+version: 0.3.0
 ---
 
 # /gerar-modelo-tmdl — Modelo semântico como código (TMDL)
@@ -265,6 +265,118 @@ let
 in
     GetApi
 ```
+
+## Tabela calendário customizada — duas armadilhas de abertura (ago/2026)
+
+Ao substituir a tabela de datas automática do Power BI por uma
+`dim_calendario`/`dimCalendario` própria (necessário pra ter uma Date table
+de verdade em produção), duas regras não cobertas nas seções acima quebram a
+abertura do projeto — não são erro de sintaxe TMDL, são erro de *modelagem*
+que o parser só detecta ao tentar montar o banco Analysis Services.
+
+**1. A tabela precisa de `showAsVariationsOnly` quando é destino de uma
+`variation` de outra tabela.** Toda coluna de data que usa o recurso nativo
+"Hierarquia de Datas" (o `variation` que o Desktop cria sozinho ao arrastar
+uma coluna de data pro visual, e que persiste no `.tmdl` da coluna como
+`variation Variation \n isDefault \n relationship: <guid> \n
+defaultHierarchy: dim_calendario.'Hierarquia de datas'`) exige essa
+propriedade na tabela de calendário. Sem ela, o Desktop recusa abrir com:
+
+```
+A tabela 'dim_calendario' deve ter a propriedade ShowAsVariationsOnly
+definida como '1', porque é um destino de variação 'Variation' para a
+coluna '<coluna_data>' na tabela '<fato>', quando a notação de variação
+está habilitada.
+```
+
+```tmdl
+table dim_calendario
+	showAsVariationsOnly
+	lineageTag: ...
+```
+
+**2. Colunas de uma partição `calculated` (CALENDAR/ADDCOLUMNS em DAX) têm
+que ser colunas calculadas DAX inline — nunca `sourceColumn`.** É tentador
+copiar o padrão de coluna de uma tabela `= m` (Power Query) — `column Ano \n
+dataType: int64 \n sourceColumn: Ano` — mas numa partição `= calculated` não
+existe "coluna de origem" vinda de fonte externa: o motor tabular não
+consegue resolver esse mapeamento e falha ao salvar com:
+
+```
+O relacionamento '<guid>' usa um ID de coluna inválido <N>.
+```
+
+Certo (mesma estrutura que o Desktop gera para a `LocalDateTable_...`
+automática — copiar, não reinventar):
+
+```tmdl
+table dim_calendario
+	showAsVariationsOnly
+	lineageTag: ...
+
+	column Date
+		dataType: dateTime
+		isKey
+		dataCategory: PaddedDateTableDates
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+	column Ano = YEAR ( [Date] )
+		dataType: int64
+		summarizeBy: none
+
+	partition dim_calendario = calculated
+		mode: import
+		source = Calendar(Date(Year(MIN(fato[DataColuna])), Month(MIN(fato[DataColuna])), 1), EOMonth(MAX(fato[DataColuna]), 0))
+```
+
+A única coluna com `sourceColumn` é a própria `Date` (resultado direto de
+`CALENDAR(...)`, referenciada como `[Date]`); todas as demais (Ano, Mês,
+Trimestre, AnoMes, etc.) são `column X = <expressão DAX>` porque derivam da
+coluna `Date` dentro da mesma tabela calculada — o mesmo princípio da regra
+#5 acima (Power Query só define tipo/coluna quando a fonte é externa de
+verdade), aplicado agora a colunas 100% calculadas.
+
+## Dimensão construída a partir de fato desnormalizada — `Table.Group`, não `Table.Distinct`
+
+Ao quebrar uma tabela plana antiga em fato + dimensões (ex.: extrair
+`dim_status` de uma coluna `Status` que convivia numa tabela única com outra
+coluna de ordenação `StatusOrdem`), é natural escrever:
+
+```m
+SemDuplicatas = Table.Distinct(Table.SelectColumns(Origem, {"Status", "StatusOrdem"}))
+```
+
+Isso **funciona no design mas quebra com dado real de produção** assim que
+existir uma única linha na fonte onde o mesmo valor de `Status` aparece com
+`StatusOrdem` diferente (erro de digitação humana, migração de sistema
+antigo, base legada crescida sem padronização). `Table.Distinct` sobre
+múltiplas colunas não garante unicidade da coluna que vai virar chave da
+dimensão, e o Desktop recusa:
+
+```
+A coluna 'Status' na Tabela 'dim_status' contém um valor duplicado
+'Concluído' e isso não é permitido para colunas de um lado de uma relação
+muitos-para-um ou para colunas que são usadas como a chave primária de uma
+tabela.
+```
+
+**Regra**: ao construir dimensão a partir de fato desnormalizada, usar
+`Table.Group` pela coluna que vai ser a chave, agregando as demais com
+`List.Min`/`List.First` — garante uma linha por chave sempre, independente
+de inconsistência na fonte, sem precisar auditar manualmente cada linha
+antes:
+
+```m
+TipoAlterado = Table.TransformColumnTypes(ColunasStatus, {{"Status", type text}, {"StatusOrdem", Int64.Type}}),
+Agrupado = Table.Group(TipoAlterado, {"Status"}, {{"StatusOrdem", each List.Min([StatusOrdem]), Int64.Type}})
+```
+
+Vale para qualquer dimensão extraída de fato antiga (pilar, categoria,
+status) — não assumir que a fonte é consistente só porque uma amostra
+pequena inicial parecia limpa; validar (ou blindar com `Table.Group`) antes
+de declarar a coluna como chave de relacionamento.
 
 ## Tabela calendário (dim_calendario) — SEMPRE dinâmica, nunca fixar datas
 

@@ -3,7 +3,7 @@ name: gerar-visuais-pbir
 description: Gera o relatório de um projeto Power BI (PBIP) escrevendo os JSONs do formato PBIR - páginas, visuais (card, tabela, matriz, gauge, linha, área, combo, donut, barras, slicer), filtros e layout. Use quando o usuário pedir para criar/gerar os visuais de um painel programaticamente. Não requer Desktop aberto; opera sobre a pasta *.Report do .pbip.
 argument-hint: <pasta-do-projeto.pbip> [nome-do-painel]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.5.0
+version: 0.6.0
 ---
 
 # /gerar-visuais-pbir — Relatório como código (PBIR)
@@ -252,6 +252,109 @@ Armadilhas confirmadas:
   A causa real de "não dispara" costuma ser apontar para a página errada
   (`section` de uma página `Drillthrough`) ou usar tabela como origem.
 - Tooltip de página **funciona no Desktop e no Service** (não é exclusivo da web).
+
+## Contraste de texto sobre fundo customizado — nunca usar `ThemeDataColor` de cabeça
+
+`ThemeDataColor` (`{"ColorId": 0, "Percent": 0}`) resolve para uma cor
+diferente dependendo do `baseTheme` do relatório — em tema testado em
+produção (ago/2026) `ColorId: 0` resolveu para uma cor **clara**, pensada
+pra texto sobre fundo escuro do tema padrão. Ao aplicar essa mesma
+propriedade em slicers/tabelas que ficam sobre um fundo de página **claro**
+(cinza `#F4F6FA`/branco) customizado pelo próprio painel, o texto renderiza
+praticamente invisível — sem erro nenhum na abertura, só ilegível na tela,
+o tipo de bug que só aparece quando alguém manda print reclamando.
+
+**Regra**: para qualquer `fontColor`/`fontColorPrimary`/`fontColorSecondary`
+de texto que fica sobre um fundo controlado pelo próprio painel (não sobre
+o tema padrão do Power BI sem alteração), usar sempre um `Literal` de cor
+explícita compatível com esse fundo — nunca `ThemeDataColor`:
+
+```json
+"fontColor": { "solid": { "color": { "expr": { "Literal": { "Value": "'#15314F'" } } } } }
+```
+
+`ThemeDataColor` só é seguro em elementos que herdam o tema padrão sem
+nenhuma customização de fundo por cima.
+
+## Imagem de fundo de página — sempre redimensionar + recomprimir antes de embutir
+
+Reaproveitar uma imagem de fundo de um painel anterior (ou qualquer imagem
+fornecida pelo usuário) sem processar primeiro é um erro de performance
+comum: a imagem original costuma ter resolução e peso muito acima do que a
+página realmente precisa (ex.: 1672×941px / 1,4 MB pra uma página de
+1280×720). Isso soma rápido — duas páginas com a mesma imagem já são quase
+3 MB só de fundo, sem contribuir em nada pro conteúdo.
+
+**Regra**: antes de registrar qualquer imagem de fundo em
+`StaticResources/RegisteredResources/`, redimensionar pro tamanho exato da
+página (`page.json` → `width`/`height`) e recodificar como JPEG qualidade
+~80 (fundos raramente precisam de transparência/PNG). Sem ImageMagick
+disponível no Windows, usar .NET via PowerShell:
+
+```powershell
+Add-Type -AssemblyName System.Drawing
+$original = [System.Drawing.Image]::FromFile($src)
+$resized = New-Object System.Drawing.Bitmap($targetW, $targetH)
+$graphics = [System.Drawing.Graphics]::FromImage($resized)
+$graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+$graphics.DrawImage($original, 0, 0, $targetW, $targetH)
+$jpegCodec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+$encParams = New-Object System.Drawing.Imaging.EncoderParameters(1)
+$encParams.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality, [int64]80)
+$resized.Save($dst, $jpegCodec, $encParams)
+```
+
+Resultado validado em produção: 1,4 MB → 32 KB (~98% menor) sem perda
+perceptível, reaproveitando a mesma imagem processada em duas páginas.
+
+## Ícones outline via Iconify — SVG direto, sem depender de conversão pra PNG
+
+O fluxo documentado em `gerar-pbix/references/design-system-villa.md`
+(`iconify_png` via `resvg-py`) exige Python + uma dependência que nem
+sempre está instalada no ambiente. Quando o que se precisa é um ícone
+outline monocromático (não o estilo "flat-color-icons" ilustrado do preset
+`kpi_card_villa`), a própria API do Iconify entrega o SVG já colorido via
+query string — **não precisa converter pra PNG**, o Power BI aceita SVG
+diretamente como `image` (mesmo mecanismo de `RegisteredResources`):
+
+```bash
+curl -s "https://api.iconify.design/tabler/alert-triangle.svg?color=%23B5342A" -o icon_atrasadas.svg
+```
+
+Duas correções necessárias antes de registrar o arquivo:
+- Trocar `width="1em" height="1em"` (que a API retorna por padrão) por
+  dimensões fixas em pixels (`width="48" height="48"`) — `1em` não renderiza
+  de forma confiável como imagem estática fora de um contexto CSS.
+- A cor vai na própria URL (`?color=%23RRGGBB`, hex com `#` urlencodado como
+  `%23`) — escolher a cor de acento do KPI/elemento ali, sem precisar editar
+  o SVG depois num editor.
+
+Família `tabler:` tem bom catálogo outline consistente pra ícones de KPI
+corporativo (`clipboard-list`, `circle-check`, `clock`, `chart-line`,
+`alert-triangle`, etc.) — mesmo estilo visual entre ícones diferentes, sem
+precisar garimpar coleção por coleção.
+
+## Não inventar sintaxe de filtro/seletor sem gabarito real
+
+Propriedades como `filterConfig` com tipo `Advanced` (filtro DAX-like
+`Not`/`Comparison`/`null`) e seletores de série por `dataPoint` usando
+`scopeId`/`equals` têm sintaxes internas do Power BI que não estão
+documentadas publicamente e variam entre versões/schema. Escrever essas
+estruturas "de memória" ou por analogia com outra propriedade é a fonte
+mais provável de gerar um PBIR que abre sem erro de schema mas falha
+silenciosamente ou quebra na próxima resalva do Desktop — a mesma classe de
+risco já descrita na "Regra de ouro reforçada" abaixo, só que auto-infligida
+em vez de causada pelo Desktop.
+
+**Regra**: se não há um `visual.json` real (do próprio projeto ou de outro
+já validado no repositório/`examples/`) pra copiar a estrutura exata,
+preferir a alternativa mais simples que não depende de sintaxe não
+verificada — por exemplo, resolver a exclusão de uma categoria vazia via
+medida DAX (`BLANK()` no lugar de `0`) em vez de um filtro Advanced no
+visual, ou deixar as cores de série padrão do tema em vez de um seletor
+`dataPoint` por categoria sem gabarito. Ajustar manualmente pela interface
+do Desktop depois é mais barato do que depurar um PBIR que quebra a
+abertura ou corrompe silenciosamente.
 
 ### Regra de ouro reforçada
 
