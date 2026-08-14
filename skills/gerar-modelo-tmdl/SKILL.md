@@ -433,6 +433,21 @@ WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
 3. **Commitar antes de gerar** — o "undo" natural é `git restore`.
 4. **Medidas**: ficam dentro do arquivo da tabela dona (`measure 'Nome' = <DAX>`);
    tabelas "grupo de medidas" seguem a mesma convenção do projeto anterior.
+5. **Nome de medida é único NO MODELO INTEIRO, não por tabela.** O motor
+   tabular do Power BI trata `measure` como um namespace global — duas
+   tabelas diferentes não podem ter uma medida com o mesmo nome (ex.:
+   `'Fonte da Aba'` em `'BASE DADOS'` e também em `ENDO`). O Desktop recusa
+   abrir o `.pbip` com:
+   ```
+   Não foi possível adicionar Measure com o nome '<Nome>' porque um Measure
+   com o mesmo nome já existe no modelo 'Model'.
+   ```
+   Isso é fácil de cair ao replicar a MESMA medida "template" (ex.: "Fonte da
+   Aba", "Última Atualização") em várias tabelas de um mesmo modelo — cada
+   cópia precisa de um nome distinto, normalmente sufixando com o nome da
+   tabela (`'Fonte da Aba - Base Dados'`, `'Fonte da Aba - Endo'`, ...).
+   Antes de escrever a mesma medida em múltiplas tabelas, `grep -rn "measure
+   '<Nome>'"` em `tables/*.tmdl` para garantir que o nome não se repete.
 
 ## Regras de TMDL validadas na prática (banco_edu, jul/2026)
 
