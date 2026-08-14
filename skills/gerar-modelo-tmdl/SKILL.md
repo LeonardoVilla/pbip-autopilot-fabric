@@ -430,7 +430,19 @@ WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
    sobrescreve a pasta ao salvar; fechar antes de gerar.
 2. **Não versionar `.pbi/`** (localSettings.json, cache.abf) — já está no
    `.gitignore` do repositório.
-3. **Commitar antes de gerar** — o "undo" natural é `git restore`.
+3. **Commitar antes de gerar** — o "undo" natural é `git restore`. Se o
+   projeto (ou a pasta `.Report`/`.SemanticModel` específica) ainda não tem
+   NENHUM commit — `git status` mostrando tudo como `??` —, isso não isenta a
+   regra: fazer um commit inicial "checkpoint antes de editar" primeiro
+   (`git init` se nem repo existir), mesmo que seja o próprio usuário quem
+   decida depois se aquele é o histórico definitivo. Sem esse checkpoint, um
+   erro de edição em lote (ex.: script que mexe em dezenas de `.json` do
+   PBIR) não tem `git diff`/`git restore` para conferir ou desfazer — o único
+   recurso vira comparar arquivo por arquivo à mão. Caso real:
+   `PainelT&D_Executivo_v1` nunca tinha sido commitado quando um lote de 12
+   arquivos do Report precisou ser corrigido (ver item 6) — sem checkpoint,
+   a correção teve que ser validada por um script de verificação em vez de
+   `git diff`.
 4. **Medidas**: ficam dentro do arquivo da tabela dona (`measure 'Nome' = <DAX>`);
    tabelas "grupo de medidas" seguem a mesma convenção do projeto anterior.
    **Se o modelo já tiver medidas espalhadas por várias tabelas de dado**
@@ -461,6 +473,23 @@ WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
    tabela (`'Fonte da Aba - Base Dados'`, `'Fonte da Aba - Endo'`, ...).
    Antes de escrever a mesma medida em múltiplas tabelas, `grep -rn "measure
    '<Nome>'"` em `tables/*.tmdl` para garantir que o nome não se repete.
+6. **Mover uma medida para outra tabela (ex.: centralizar em `_Medidas`)
+   QUEBRA todo visual/bookmark do Report que já a usava — mexer nos dois
+   projetos juntos, nunca só no `.SemanticModel`.** O PBIR referencia cada
+   medida pelo par `(Entity, Property)`, não só pelo nome: todo
+   `visual.json` guarda `"Expression": {"SourceRef": {"Entity":
+   "<TabelaAntiga>"}}` + `"Property": "<NomeMedida>"`, e também um
+   `"queryRef": "<TabelaAntiga>.<NomeMedida>"` como string solta — os
+   `bookmark.json` guardam os mesmos filtros/seleções e sofrem igual. Trocar
+   só a `measure` no `.tmdl` sem atualizar o `.Report` deixa cada visual
+   afetado com "não é possível exibir o visual" ao reabrir. **Depois de
+   mover uma medida, grep no `.Report` inteiro por `"Property": "<Nome>"` e
+   por `"<TabelaAntiga>.<Nome>"`** (ambos os formatos aparecem) e trocar o
+   `Entity`/prefixo para a tabela nova em cada ocorrência — script
+   percorrendo o JSON (não regex de texto puro, para não confundir strings
+   parecidas) é mais seguro que editar arquivo por arquivo à mão quando são
+   muitas medidas/visuais. Caso real: mover 15 medidas do
+   `PainelT&D_Executivo_v1` quebrou 12 arquivos (8 bookmarks + 4 visuals).
 
 ## Regras de TMDL validadas na prática (banco_edu, jul/2026)
 
@@ -605,7 +634,11 @@ próximo Atualizar — não é uma correção estável.
 ## Relação com as outras skills
 
 - `gerar-visuais-pbir`: escreve o relatório (pasta `*.Report/`) — nunca as duas
-  na mesma pasta ao mesmo tempo sem coordenar.
+  na mesma pasta ao mesmo tempo sem coordenar. Renomear/mover uma medida
+  (regra crítica 6 acima) é um caso concreto de coordenação obrigatória: a
+  mudança começa nesta skill (`.tmdl`) mas só termina depois de corrigir as
+  referências no `.Report` — não considerar a tarefa concluída sem os dois
+  lados atualizados.
 - `pbip-context`: regras do formato PBIP (ler antes da primeira geração).
 - `gerar-etl-tom` (projeto anterior): ainda útil para ajuste fino num modelo
   JÁ aberto no Desktop (cenário interativo/hot-edit).
