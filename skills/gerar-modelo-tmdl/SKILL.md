@@ -433,6 +433,19 @@ WHERE DATEADD(DAY, N.N, @DATA_INICIO) <= @DATA_FIM;
 3. **Commitar antes de gerar** — o "undo" natural é `git restore`.
 4. **Medidas**: ficam dentro do arquivo da tabela dona (`measure 'Nome' = <DAX>`);
    tabelas "grupo de medidas" seguem a mesma convenção do projeto anterior.
+   **Se o modelo já tiver medidas espalhadas por várias tabelas de dado**
+   (`grep -rn "^\s*measure" tables/*.tmdl` mostrando `measure` em 3+ tabelas
+   diferentes que não sejam já uma tabela de medidas dedicada), **perguntar
+   ao usuário** antes de adicionar mais medidas nesse padrão disperso: propor
+   centralizar tudo numa tabela `_Medidas` (grupo de medidas sem colunas de
+   dado, `partition _Medidas = m` com `source = let Origem = #table({}, {})
+   in Origem`) — mover as medidas existentes (só muda a home; `[NomeMedida]`
+   e `SUM/CALCULATE(Tabela[Coluna])` dentro do DAX continuam funcionando
+   normalmente entre tabelas) e escrever as novas já lá. Não decidir sozinho
+   a favor da centralização nem contra — é uma escolha de organização do
+   usuário, não uma regra técnica obrigatória (caso real:
+   `PainelT&D_Executivo_v1`, 15 medidas em 8 tabelas, centralizadas em
+   `_Medidas` a pedido do usuário depois de já geradas dispersas).
 5. **Nome de medida é único NO MODELO INTEIRO, não por tabela.** O motor
    tabular do Power BI trata `measure` como um namespace global — duas
    tabelas diferentes não podem ter uma medida com o mesmo nome (ex.:
