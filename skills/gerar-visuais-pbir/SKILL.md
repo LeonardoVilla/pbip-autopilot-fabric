@@ -72,6 +72,18 @@ mesma versão, nunca inventar a URL/versão.
 5. **Validar**: abrir o `.pbip` no Desktop; visual malformado aparece como
    erro no próprio visual, não corrompe o arquivo (ao contrário do `.pbix`).
 
+## Padrão visual (design system)
+
+Antes de escolher cor, fonte, borda, título ou eixo, ler
+[references/design-system.md](references/design-system.md) — paleta,
+tipografia, layout de página e o JSON pronto de cada tipo de visual (card,
+gráfico, slicer, tabela), extraídos de um painel real em produção
+(44 visuais, ago/2026). Seguir esse padrão salvo pedido em contrário.
+
+> **Nunca sobrescrever formatação já aplicada pelo usuário.** Ao editar um
+> visual existente, alterar apenas `query`/`position`; preservar os blocos
+> `objects` e `visualContainerObjects` como estão.
+
 ## Regras críticas
 
 0. **O `report.json` precisa de `themeCollection.baseTheme` no `config`.** Um
