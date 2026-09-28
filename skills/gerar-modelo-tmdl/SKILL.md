@@ -221,6 +221,53 @@ erro real corrigido:
    for editar um modelo legado que já esteja nesse nível. A linha
    `compatibilityMode: powerBI` deve estar presente.
 
+   **⚠️ `1601` fica DESATUALIZADO conforme o Desktop evolui — builds recentes
+   recusam downgrade.** Validado em campo (VILLA MT, set/2026, Desktop release
+   ago/2026 build 2.157.1354.0): abrir um PBIP gerado com `compatibilityLevel:
+   1601` nessa build falha com
+   ```
+   In order to enable reload with this PBIP you must manually upgrade the
+   database version in "...\database.tmdl" to "1606".
+   ...
+   Os bancos de dados tabulares não dão suporte ao downgrade de
+   CompatibilityLevel. CompatibilityLevel atual: '1606'. CompatibilityLevel
+   solicitado: '1601'.
+   ```
+   Ou seja, a build local do Desktop já usa `1606` como nível mínimo interno e
+   recusa abrir um modelo declarado com nível mais baixo. **`1601` não é um
+   número fixo e seguro — é o nível válido de uma janela de tempo específica
+   do Desktop.** Antes de fixar um valor, gerar um `.pbip` vazio pela própria
+   instalação do Desktop (Arquivo → Salvar como → Power BI Project) e ler o
+   `compatibilityLevel` real do `database.tmdl` resultante — a mesma regra de
+   "copiar do Desktop instalado" que já vale para `$schema`, agora estendida
+   explicitamente a este campo. Se não for possível gerar essa referência,
+   preferir o maior valor documentado publicamente no momento a usar um número
+   citado de memória ou desta skill sem confirmar.
+
+## CSV com decimal em ponto lido errado em Desktop pt-BR (10x maior)
+
+Validado em campo (VILLA MT, set/2026): ao carregar um CSV gerado por Python/
+pandas (decimal com `.`, ex. `0.9`) via `Csv.Document` +
+`Table.TransformColumnTypes(tabela, {{"coluna", type number}})` **sem
+especificar cultura**, um Desktop com o Windows/Office regional em `pt-BR`
+pode interpretar o separador de forma inconsistente e o valor final aparece
+multiplicado por 10 quando exibido com `formatString: 0%` (`0.9` vira "900%"
+em vez de "90%" — o valor real gravado no modelo já vem errado, não é só a
+formatação). Sintoma: comparar o CSV bruto (`0.9`) com o card/tabela do Power
+BI mostra uma discrepância consistente de ordem de grandeza.
+
+**Correção**: converter colunas numéricas com decimal em ponto usando o
+terceiro parâmetro de cultura do `Table.TransformColumnTypes`, forçando
+`"en-US"` (ponto como separador decimal) independente do locale do Desktop:
+```
+PercentuaisCorrigidos = Table.TransformColumnTypes(TabelaAnterior,
+    {{"pct_ativo", type number}, {"pct_lazer", type number}}, "en-US")
+```
+Fazer isso em um passo `let` separado, DEPOIS de converter as colunas sem
+ambiguidade de decimal (texto, inteiro, data) sem cultura — misturar todas as
+colunas numéricas (inteiras e decimais) numa única chamada sem cultura é o
+que reproduz o bug quando alguma delas tem separador decimal.
+
 ## Padrão validado: fonte = API REST com token (Web.Contents)
 
 Quando a fonte não é banco mas uma **API REST** (ex.: consumir os endpoints de

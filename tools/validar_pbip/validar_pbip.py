@@ -412,9 +412,11 @@ def check_semantic_model(model: dict) -> list:
     # --- Regra própria: database.tmdl compatível com o padrão validado ---
     db = model["database_props"]
     compat = db.get("compatibilityLevel", "")
-    if compat.isdigit() and int(compat) < 1601:
+    if compat.isdigit() and int(compat) < 1500:
         findings.append(Finding("PBIP_DB_COMPATIBILITY", 2, "Database", "database.tmdl",
-                                 f"compatibilityLevel: {compat} — padrão validado em produção é 1601."))
+                                 f"compatibilityLevel: {compat} — nível muito antigo. Gere um .pbip vazio no "
+                                 "Desktop instalado e copie o compatibilityLevel real do database.tmdl "
+                                 "resultante antes de fixar um valor (esse número muda entre builds do Desktop)."))
     if "compatibilityMode" not in db:
         findings.append(Finding("PBIP_DB_COMPATIBILITY", 1, "Database", "database.tmdl",
                                  "compatibilityMode: powerBI ausente — presente no sample oficial da Microsoft."))
@@ -448,9 +450,48 @@ FORBIDDEN_TOOLTIP_PROPS = {
 }
 FOLDER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
+# visualType que parecem plausíveis por analogia com o nome na UI do Desktop
+# mas não existem como tipo nativo — achado de campo (VILLA MT, set/2026):
+# "stackedColumnChart" falha com CustomVisualNotFound; o nome nativo real
+# para colunas empilhadas é "columnChart" (empilha por padrão quando há
+# múltiplos campos em Values sem agrupamento lado a lado).
+KNOWN_INVALID_VISUAL_TYPES = {
+    "stackedColumnChart": "columnChart",
+    "stackedBarChart": "barChart",
+}
+
+
+def check_version_file(report_dir: Path) -> list:
+    """version.json tem schema PRÓPRIO — não confundir com a versão "4.0" do
+    definition.pbir/definition.pbism. Achado de campo (VILLA MT, set/2026):
+    version.json com {"version": "4.0"} é aceito na abertura mas contribui
+    para 'Cannot read properties of undefined (reading visualContainers)' ao
+    renderizar."""
+    findings = []
+    version_json = report_dir / "definition" / "version.json"
+    if not version_json.exists():
+        findings.append(Finding("PBIP_VERSION_FILE_MISSING", 3, "Report", "version.json",
+                                 "definition/version.json ausente — obrigatório para o Desktop reconhecer a pasta definition/ como PBIR válido."))
+        return findings
+    try:
+        data = json.loads(version_json.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        findings.append(Finding("PBIP_VERSION_FILE_MISSING", 3, "Report", "version.json",
+                                 "version.json não é um JSON válido."))
+        return findings
+    version = data.get("version", "")
+    if version == "4.0" or "$schema" not in data:
+        findings.append(Finding("PBIP_VERSION_FILE_MISSING", 3, "Report", "version.json",
+                                 f"version.json com valor suspeito (version={version!r}, "
+                                 "$schema ausente ou incorreto) — o formato esperado é "
+                                 '{"$schema": ".../versionMetadata/1.0.0/schema.json", "version": "2.0.0"} '
+                                 "(não confundir com a versão \"4.0\" do definition.pbir/.pbism)."))
+    return findings
+
 
 def check_report(report_dir: Path) -> list:
     findings = []
+    findings.extend(check_version_file(report_dir))
 
     report_json = report_dir / "definition" / "report.json"
     if report_json.exists():
@@ -499,6 +540,18 @@ def check_report(report_dir: Path) -> list:
             if pb:
                 page_binding_names[pb].append(str(page_json))
 
+            # Filtro de PÁGINA baseado em medida é frágil — achado de campo
+            # (VILLA MT, set/2026): quebrou a renderização de TODOS os
+            # visuais da página com o erro genérico "problema de capacidade
+            # ou licença". Preferir filtro de visual por coluna simples.
+            for flt in data.get("filterConfig", {}).get("filters", []):
+                if "Measure" in flt.get("field", {}):
+                    findings.append(Finding("PBIP_PAGE_FILTER_BY_MEASURE", 2, "Page", page_dir.name,
+                                             f"Filtro de página '{flt.get('name')}' usa Measure — achado de campo: "
+                                             "isso pode quebrar a renderização de todos os visuais da página com um "
+                                             "erro genérico de 'capacidade ou licença'. Preferir filtro de VISUAL "
+                                             "(filterConfig do visual.json) por COLUNA simples."))
+
         visuals_dir = page_dir / "visuals"
         if not visuals_dir.exists():
             continue
@@ -513,6 +566,30 @@ def check_report(report_dir: Path) -> list:
             if not visual_json.exists():
                 continue
             data = json.loads(visual_json.read_text(encoding="utf-8"))
+
+            # filterConfig ausente no visual — achado de campo (VILLA MT,
+            # set/2026): todo visual REAL gerado pelo Desktop tem isso, sem
+            # exceção, mesmo sem nenhum filtro configurado pelo usuário. A
+            # ausência contribui para 'Cannot read properties of undefined
+            # (reading visualContainers)' ao renderizar o relatório inteiro.
+            if "filterConfig" not in data:
+                has_projection = any(
+                    role.get("projections")
+                    for role in data.get("visual", {}).get("query", {}).get("queryState", {}).values()
+                )
+                if has_projection:
+                    findings.append(Finding("PBIP_VISUAL_FILTERCONFIG_MISSING", 3, "Visual", visual_dir.name,
+                                             "visual.json sem filterConfig no nível raiz — todo visual real gerado "
+                                             "pelo Desktop tem um filtro por campo usado na query, mesmo sem regra "
+                                             "de filtro configurada. Ausência contribui para o erro genérico "
+                                             "'Cannot read properties of undefined (reading visualContainers)'."))
+
+            visual_type = data.get("visual", {}).get("visualType")
+            if visual_type in KNOWN_INVALID_VISUAL_TYPES:
+                findings.append(Finding("PBIP_INVALID_VISUAL_TYPE", 3, "Visual", visual_dir.name,
+                                         f"visualType '{visual_type}' não é um tipo nativo válido — "
+                                         f"usar '{KNOWN_INVALID_VISUAL_TYPES[visual_type]}' (falha isolada no "
+                                         "visual com 'CustomVisualNotFound' / 'Não é possível exibir este visual')."))
 
             pb = data.get("pageBinding", {}).get("name")
             if pb:

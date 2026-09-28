@@ -17,6 +17,25 @@ projetado pela Microsoft para edição programática. Sucessora da skill
 > **STATUS: esqueleto em validação.** O catálogo de visuais do projeto
 > anterior (validado em produção no VILLA MT) ainda precisa ser portado —
 > ver mapa em [docs/roadmap.md](../../docs/roadmap.md).
+>
+> **⚠️ set/2026:** confirmado em campo que gerar visuais "à mão" (sem antes
+> checar uma referência real do Desktop instalado) tem alto risco de
+> produzir um relatório que carrega o modelo mas falha ao renderizar com um
+> erro genérico (`Cannot read properties of undefined (reading
+> 'visualContainers')`) que NÃO indica qual visual ou campo é o culpado. As
+> causas raiz confirmadas até agora — schema/tema de `report.json`
+> desatualizado (regra 0), ausência de `filterConfig` em cada visual (regra
+> 0a), e `version.json` com o schema/valor errado (regra 0b) — foram
+> encontradas por eliminação, comparando contra uma referência real gerada
+> no próprio Desktop do usuário. Depois desse ponto, erros de `visualType`
+> inválido (regra 0c) e de filtro de página por medida (regra 0d) aparecem
+> de forma isolada e mais fácil de diagnosticar. **Antes de gerar visuais em
+> massa para um projeto novo, sempre pedir ao usuário (ou gerar você mesmo,
+> se tiver Desktop disponível) uma página de referência com 2-3 tipos de
+> visual diferentes (card, gráfico com eixo, slicer) já salvos pelo
+> Desktop**, e copiar a estrutura exata de lá — não confiar nos exemplos
+> desta skill sem essa checagem, pois a versão do Desktop do usuário pode já
+> ter divergido deles.
 
 ## Estrutura alvo
 
@@ -87,6 +106,139 @@ mesma versão, nunca inventar a URL/versão.
    (Copiar `name`/`version` de um report gerado pelo próprio Desktop.) O
    `customTheme` referencia um arquivo em `StaticResources/` — só incluir se o
    arquivo de tema existir; para report vazio, o `baseTheme` sozinho basta.
+
+   **⚠️ Correção validada em campo (VILLA MT, projeto de monitoria de
+   atividade, set/2026, Desktop release ago/2026 build 2.157.1354.0):** o exemplo acima
+   (`CY23SU04`/`version: "5.43"`/`type: 2`) é de uma versão antiga do Desktop
+   e **não existe mais como arquivo de tema real** nessa build. Gerar
+   `report.json` com esses valores inventados de memória faz o modelo carregar
+   mas o relatório falha ao renderizar com o MESMO erro genérico descrito na
+   regra 0a abaixo. O `report.json` real gerado por essa build usa:
+   ```json
+   {
+     "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.3.0/schema.json",
+     "themeCollection": {
+       "baseTheme": {
+         "name": "Fluent2-CY26SU08",
+         "reportVersionAtImport": { "visual": "2.12.0", "report": "3.4.0", "page": "2.3.1" },
+         "type": "SharedResources"
+       }
+     },
+     "resourcePackages": [ { "name": "SharedResources", "type": "SharedResources",
+       "items": [ { "name": "Fluent2-CY26SU08", "path": "BaseThemes/Fluent2-CY26SU08.json", "type": "BaseTheme" } ] } ],
+     "settings": { "useStylableVisualContainerHeader": true, "exportDataMode": "AllowSummarized",
+       "defaultDrillFilterOtherVisuals": true, "allowChangeFilterTypes": true,
+       "useEnhancedTooltips": true, "useDefaultAggregateDisplayName": true }
+   }
+   ```
+   Note `type: "SharedResources"` (string), não `type: 2` (número) — outra
+   diferença de versão. **Regra reforçada: nunca reutilizar valores de
+   `report.json`/`page.json`/`visual.json` citados nesta skill ou em qualquer
+   doc/exemplo antigo sem primeiro gerar (ou pedir ao usuário para gerar) uma
+   página em branco no Desktop instalado E COPIAR o `$schema`, o nome do tema
+   e o arquivo `StaticResources/SharedResources/BaseThemes/<nome>.json` de lá.**
+   Cada build do Desktop pode usar um tema padrão diferente; o nome do tema
+   também muda o arquivo StaticResources necessário — sem ele, mesmo com o
+   `report.json` correto, o Desktop não encontra o asset referenciado.
+
+0a. **TODO `visual.json` PRECISA de um `filterConfig` no nível raiz — sem ele,
+    o relatório falha ao renderizar com erro genérico e difícil de
+    diagnosticar.** Validado em campo (mesma sessão acima): gerar visuais só
+    com `visual: {...}` e nenhum `filterConfig` faz o Desktop CARREGAR o
+    modelo (as queries M aparecem normalmente no relatório de erro) mas falhar
+    ao pintar o relatório com:
+    ```
+    Erro ao renderizar o relatório.
+    JS Error Message: Cannot read properties of undefined (reading 'visualContainers')
+    ```
+    Esse erro **não aponta para o visual nem a página culpada** — é um erro
+    de nível de exploração inteira, então schema/versão errados e
+    `filterConfig` ausente produzem exatamente o mesmo sintoma, o que torna
+    fácil gastar várias rodadas corrigindo a causa errada (aconteceu nesta
+    sessão: corrigimos `compatibilityLevel`, depois `$schema` de
+    report/page/visual, depois `drillFilterOtherVisuals`, e só depois de
+    comparar com um visual REAL gerado pelo Desktop é que o `filterConfig`
+    ausente apareceu como diferença).
+
+    **Padrão confirmado** (todo visual real gerado pelo Desktop tem isso, sem
+    exceção, mesmo sem nenhum filtro configurado pelo usuário): para cada
+    campo usado em qualquer role de `query.queryState` (Values, Category, Y,
+    Series, etc.), adicionar um filtro correspondente:
+    ```json
+    "filterConfig": {
+      "filters": [
+        {
+          "name": "<20-caracteres-hex-aleatorios>",
+          "field": { /* MESMO objeto field usado na projection */ },
+          "type": "Advanced"      // quando o field usa Measure/Aggregation
+        },
+        {
+          "name": "<outro-id>",
+          "field": { /* ... */ },
+          "type": "Categorical"   // quando o field usa Column/HierarchyLevel puro
+        }
+      ]
+    }
+    ```
+    Regra de ouro (a mesma do `$schema`): **gerar 1-2 visuais reais no Desktop
+    primeiro** (um cartão com medida, um gráfico com categoria+valor, um
+    slicer) e copiar a forma exata do `filterConfig` resultante antes de gerar
+    em massa — o padrão acima foi inferido de exemplos reais mas o Desktop
+    pode ter regras adicionais (ex.: `ordinal`, `howCreated`) não cobertas
+    aqui ainda.
+
+0b. **`version.json` (em `*.Report/definition/version.json`) tem seu PRÓPRIO
+    schema — não confundir com a versão `"4.0"` do `definition.pbir`/
+    `definition.pbism`.** Validado em campo (mesma sessão): um `version.json`
+    com `{"version": "4.0"}` (copiado por engano do valor usado em
+    `definition.pbir`) é aceito silenciosamente na abertura mas contribui para
+    o mesmo erro genérico `Cannot read properties of undefined (reading
+    'visualContainers')` ao renderizar — foi a correção que, combinada com a
+    regra 0a, resolveu o problema nesta sessão. O valor real gerado pelo
+    Desktop é:
+    ```json
+    {
+      "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
+      "version": "2.0.0"
+    }
+    ```
+    Sempre copiar este arquivo literalmente de uma referência real — não
+    inferir o valor a partir de outros arquivos `.pbir`/`.pbism` do mesmo
+    projeto, que usam um schema (`definitionProperties`) e um número de
+    versão (`"4.0"`) completamente diferentes.
+
+0c. **Nomes de `visualType` inválidos falham de forma isolada e clara** (ao
+    contrário das regras 0/0a/0b, que travam o relatório inteiro) — o visual
+    específico mostra "Não é possível exibir este visual" /
+    `CustomVisualNotFound`, pedindo para "adicionar este visual personalizado
+    ao relatório". Isso geralmente não significa que falta um visual de
+    terceiros: é sinal de que o `visualType` usado não é um nome válido de
+    visual NATIVO. Confirmado em campo: `"stackedColumnChart"` não existe — o
+    nome nativo correto para colunas empilhadas é `"columnChart"` (o
+    empilhamento é о padrão quando há múltiplos campos em Values sem
+    agrupamento lado a lado); `"clusteredColumnChart"` é o nome para colunas
+    agrupadas lado a lado. **Nunca inventar `visualType` por analogia com o
+    nome que aparece na UI do Desktop** ("Gráfico de colunas empilhadas") —
+    conferir o nome real gerado ao inserir esse visual pela interface antes de
+    usá-lo em massa.
+
+0d. **Filtro de PÁGINA baseado em MEDIDA (measure) é frágil e pode quebrar a
+    renderização de todos os visuais da página com um erro genérico de
+    "capacidade ou licença".** Confirmado em campo: um `page.json` com
+    `filterConfig.filters[].field.Measure` (filtrando a página inteira por
+    ex. `Flag Compliance = 1`, uma medida `IF(...)`) fez TODOS os visuais da
+    página (cards e tabela) falharem com o diálogo genérico "Isso pode ser
+    causado por um problema de capacidade ou licença" — mensagem que não tem
+    relação óbvia com a causa real. A hipótese mais provável é que o motor
+    não consegue aplicar um filtro de página em nível de medida quando os
+    visuais da página não compartilham o mesmo contexto de granularidade (ex.:
+    cards agregados sem a mesma dimensão usada na medida). **Preferir filtrar
+    por COLUNA em nível de VISUAL** (`filterConfig` do `visual.json`, não do
+    `page.json`) sempre que possível — filtro por coluna simples
+    (`flag_uso_indevido = true`) funciona nativamente; filtro por medida com
+    lógica OR/IF entre colunas é mais seguro implementar como medida auxiliar
+    consumida por um slicer, não como filtro de página direto.
+
 1. **NUNCA editar com o projeto aberto no Desktop** (Desktop sobrescreve ao salvar).
 2. **IDs de página/visual**: seguir o padrão dos gerados pelo Desktop —
    identificador único de 20 caracteres (ex: `90c2e07d8e84e7d5c026`), pasta = id.
