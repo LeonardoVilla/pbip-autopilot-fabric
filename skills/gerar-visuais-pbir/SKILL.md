@@ -1,10 +1,14 @@
 ---
 name: gerar-visuais-pbir
 description: Gera o relatório de um projeto Power BI (PBIP) escrevendo os JSONs do formato PBIR - páginas, visuais (card, tabela, matriz, gauge, linha, área, combo, donut, barras, slicer), filtros e layout. Use quando o usuário pedir para criar/gerar os visuais de um painel programaticamente. Não requer Desktop aberto; opera sobre a pasta *.Report do .pbip.
-argument-hint: <pasta-do-projeto.pbip> [nome-do-painel]
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, PowerShell]
-version: 0.5.0
 ---
+
+## Extensao para custom visuals
+
+Quando o pedido envolver um visual AppSource, organizacional ou privado `.pbiviz`, leia `references/custom-visuals.md` antes de editar. O suporte cobre o registro e a configuracao PBIR/PBIP de um pacote existente; nao compila um `.pbiviz` do zero.
+
+Antes da publicacao, validar o JSON, abrir o PBIP no Desktop e revisar visualmente a pagina afetada. Schema valido sozinho nao substitui a revisao no Desktop.
 
 # /gerar-visuais-pbir — Relatório como código (PBIR)
 
